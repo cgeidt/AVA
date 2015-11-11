@@ -1,5 +1,7 @@
 package htw.ava.communication;
 
+import htw.ava.NodeManager;
+
 import java.io.IOException;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
@@ -26,7 +28,7 @@ public class NodeClient implements Runnable {
             oos.close();
             this.socket.close();
         } catch (IOException e) {
-            System.err.println(e.getMessage());
+            NodeManager.logger.err(e.getMessage());
         }
     }
 }

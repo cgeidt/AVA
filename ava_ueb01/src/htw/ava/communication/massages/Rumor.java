@@ -16,9 +16,12 @@ public class Rumor implements Serializable {
 
     /**
      * Increases the counter representing how often the rumor has been received
+     *
+     * @return returns if the rumor can be trusted after receiving it
      */
-    public void receivedRumor(){
+    public boolean receivedRumor(){
         counter++;
+        return canBeTrusted();
     }
 
     /**

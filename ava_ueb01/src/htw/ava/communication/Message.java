@@ -10,9 +10,6 @@ public class Message implements Serializable {
     public static final int TYPE_RUMOR = 0;
     public static final int TYPE_NODE_INFO = 1;
     public static final int TYPE_SHUTDOWN_NODES = 2;
-    public static final int TYPE_RUMOR_ONE = 3;
-    public static final int TYPE_RUMOR_TWO = 4;
-    public static final int TYPE_RUMOR_THREE = 5;
     private static final String UNKNOWN_TYPE = "Received Message with unknown type";
 
     /**
@@ -38,15 +35,6 @@ public class Message implements Serializable {
                 break;
             case TYPE_RUMOR:
                 nodeToAffect.processRumorReceived(getSenderId());
-                break;
-            case TYPE_RUMOR_ONE:
-                nodeToAffect.processRumorReceived1(getSenderId());
-                break;
-            case TYPE_RUMOR_TWO:
-                nodeToAffect.processRumorReceived2(getSenderId());
-                break;
-            case TYPE_RUMOR_THREE:
-                nodeToAffect.processRumorReceived3(getSenderId());
                 break;
             case TYPE_SHUTDOWN_NODES:
                 nodeToAffect.processNodesShutdown(getSenderId());

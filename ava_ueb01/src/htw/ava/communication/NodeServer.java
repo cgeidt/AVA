@@ -1,7 +1,7 @@
 package htw.ava.communication;
 
-import htw.ava.Logger;
 import htw.ava.Node;
+import htw.ava.NodeManager;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;
@@ -42,9 +42,10 @@ public class NodeServer implements Runnable {
                 receivedMessage.process(node);
             }
         } catch (IOException e) {
+            NodeManager.logger.err(e.getMessage());
             stop();
         } catch (ClassNotFoundException e) {
-            Logger.err(e.getMessage());
+            NodeManager.logger.err(e.getMessage());
         }
 
     }

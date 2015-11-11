@@ -8,19 +8,28 @@ import java.text.SimpleDateFormat;
  */
 public class Logger {
 
-    private static final String ANSI_RESET = "\u001B[0m";
-    private static final String ANSI_RED = "\u001B[31m";
-    private static final String ANSI_GREEN = "\u001B[32m";
 
-    public static void log(String msg){
-        System.out.println(ANSI_GREEN + getTime() + ":" + ANSI_RESET + "\n" + msg);
+    private boolean debugEnabled;
+
+    public Logger(boolean debugEnabled){
+        this.debugEnabled = debugEnabled;
     }
 
-    public static void err(String msg){
-        System.err.println(ANSI_RED + getTime() + ": " + ANSI_RESET);
+    public void debug(String msg){
+        if (debugEnabled){
+            System.out.println(getTime() + ": "+ msg);
+        }
     }
 
-    private static String getTime(){
+    public void log(String msg){
+        System.out.println(getTime() + ": "+ msg);
+    }
+
+    public void err(String msg){
+        System.err.println(getTime() + ": " + msg);
+    }
+
+    private String getTime(){
         Date dNow = new Date( );
         SimpleDateFormat ft = new SimpleDateFormat ("yyyy.MM.dd, hh:mm:ss:S");
         return  ft.format(dNow);

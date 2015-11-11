@@ -8,7 +8,6 @@ import htw.ava.communication.massages.Rumor;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Date;
 
 /**
  * Created by cgeidt on 21.10.2015.
@@ -90,13 +89,16 @@ public class Node {
                 //sending message
                 Thread sendThread = new Thread(new NodeClient(nodeInfo.getHostname(), nodeInfo.getPort(), msg));
                 sendThread.start();
-                System.out.println("Sent message of type " + Message.TYPE_MAPPING[msg.getType()] + " to node " + nodeInfo.getId());
+                NodeManager.logger.debug("Sent message of type " + Message.TYPE_MAPPING[msg.getType()] + " to node " + nodeInfo.getId());
             } catch (IOException ex) {
-                System.err.println("------------------------------------------------------------");
-                System.err.println(ex.getMessage());
-                System.err.println("Could not find node with id " + nodeInfo.getId());
-                System.err.println("Hostname/IP:Port = " + nodeInfo.getHostname() + ":" + nodeInfo.getPort());
-                System.err.println("------------------------------------------------------------");
+                StringBuilder sb = new StringBuilder();
+                sb.append("------------------------------------------------------------");
+                sb.append(ex.getMessage());
+                sb.append("Could not find node with id " + nodeInfo.getId());
+                sb.append("Hostname/IP:Port = " + nodeInfo.getHostname() + ":" + nodeInfo.getPort());
+                sb.append("------------------------------------------------------------");
+                NodeManager.logger.err(sb.toString());
+
             }
             //checks if limit is set
             if (limit != -1) {
@@ -128,15 +130,16 @@ public class Node {
         sb.append("Message received.\n");
         sb.append("Hostname/IP:Port = " + nodeInfo.getHostname() + ":" + nodeInfo.getPort()+"\n");
         sb.append("------------------------------------------------------------");
-        Logger.log(sb.toString());
+        NodeManager.logger.debug(sb.toString());
     }
 
     /**
      * start sharing the rumor
      *
-     * @param rumorType the type of rumor which u want to share
      */
-    public void initateSharingRumor(int rumorType) {
+    public void initateSharingRumor() {
+        Message msg = new Message(nodeServer.getNodeInfo().getId(), Message.TYPE_RUMOR, nodeServer.getNodeInfo());
+        sendMessage(msg);
     }
 
     /**
@@ -145,71 +148,16 @@ public class Node {
      * @param senderId id of the node which has sent the rumor
      */
     public void processRumorReceived(String senderId) {
-        System.out.println("Received rumor from node " + senderId);
         // do i already believe the rumor?
         if (!rumor.canBeTrusted()) {
-            rumor.receivedRumor();
+            if(rumor.receivedRumor()){
+                NodeManager.logger.log("I am trusting the rumor now!");
+            }
+            NodeManager.logger.debug("Node "+senderId+" told me the rumor.");
             Message msg = new Message(nodeServer.getNodeInfo().getId(), Message.TYPE_RUMOR, null);
             sendMessage(msg, senderId);
         } else {
-            System.out.println("Believes the rumor");
-        }
-    }
-
-    /**
-     * react when received the rumor, share it
-     *
-     * @param senderId id of the node which has sent the rumor
-     */
-    public void processRumorReceived1(String senderId) {
-        System.out.println("Received rumor from node " + senderId);
-        if (!rumor.canBeTrusted()) {
-            rumor.receivedRumor();
-            Message msg = new Message(nodeServer.getNodeInfo().getId(), Message.TYPE_RUMOR_ONE, null);
-            sendMessage(msg, 2, senderId);
-        } else {
-            System.out.println("Believes the rumor");
-        }
-    }
-
-    /**
-     * react when received the rumor, share it
-     *
-     * @param senderId id of the node which has sent the rumor
-     */
-    public void processRumorReceived2(String senderId) {
-        System.out.println("Received rumor from node " + senderId);
-        if (!rumor.canBeTrusted()) {
-            rumor.receivedRumor();
-            Message msg = new Message(nodeServer.getNodeInfo().getId(), Message.TYPE_RUMOR_TWO, null);
-            int limit = neighbours.size() - 2;
-            if (limit < 0) {
-                limit = 0;
-            }
-            sendMessage(msg, limit, senderId);
-        } else {
-            System.out.println("Believes the rumor");
-        }
-    }
-
-    /**
-     * react when received the rumor, share it
-     *
-     * @param senderId id of the node which has sent the rumor
-     */
-    public void processRumorReceived3(String senderId) {
-        System.out.println("Received rumor from node " + senderId);
-        if (!rumor.canBeTrusted()) {
-            rumor.receivedRumor();
-            Message msg = new Message(nodeServer.getNodeInfo().getId(), Message.TYPE_RUMOR_TWO, null);
-            int limit = (neighbours.size() - 1)/2;
-            if (limit < 0) {
-                limit = 0;
-            }
-            sendMessage(msg, limit, senderId);
-            sendMessage(msg, senderId);
-        } else {
-            System.out.println("Believes the rumor");
+            NodeManager.logger.debug("Node " + senderId + " told me the rumor, but i already believe it.");
         }
     }
 
@@ -220,12 +168,12 @@ public class Node {
         Message msg = new Message(nodeServer.getNodeInfo().getId(), Message.TYPE_SHUTDOWN_NODES, null);
         sendMessage(msg);
         System.out.println("------------------------------------------------------------");
-        System.out.println("Shutting down node in 3 sec and telling naighbours to shut down");
+        System.out.println("Shutting down node in 3 sec and telling neighbours to shut down");
         System.out.println("------------------------------------------------------------");
         try {
             Thread.sleep(3000);
         } catch (InterruptedException ex) {
-            Logger.err(ex.getMessage());
+            NodeManager.logger.err(ex.getMessage());
         }
         shutdown();
     }
@@ -239,12 +187,12 @@ public class Node {
         Message msg = new Message(nodeServer.getNodeInfo().getId(), Message.TYPE_SHUTDOWN_NODES, null);
         sendMessage(msg, senderID);
         System.out.println("------------------------------------------------------------");
-        System.out.println("Shutting down node in 3 sec and telling naighbours to shut down");
+        System.out.println("Shutting down node in 3 sec and telling neighbours to shut down");
         System.out.println("------------------------------------------------------------");
         try {
             Thread.sleep(3000);
         } catch (InterruptedException ex) {
-            Logger.err(ex.getMessage());
+            NodeManager.logger.err(ex.getMessage());
         }
         shutdown();
     }
@@ -259,7 +207,7 @@ public class Node {
                     + nodeInfo.getHostname() + ":"
                     + nodeInfo.getPort());
         }
-        System.out.println("############################################################");
+        System.out.println("#############################################################");
     }
 
     /**

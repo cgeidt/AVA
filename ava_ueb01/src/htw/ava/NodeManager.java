@@ -17,6 +17,8 @@ import org.apache.commons.cli.ParseException;
 
 public class NodeManager {
 
+    public final static Logger logger = new Logger(false);
+
     public static final String SEPARATOR = "\n::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::\n";
 
     //Options for cli
@@ -44,7 +46,6 @@ public class NodeManager {
             GraphManager graphManager = new GraphManager(hostsFile, graphFile);
             NodeInfo hostNodeInfo = graphManager.getNodeConnectivityInfoForId(hostId);
             ArrayList<NodeInfo> neighbours = graphManager.getHostsListForId(hostId);
-
             Node node = new Node(hostNodeInfo, neighbours);
 
             int command;
@@ -59,17 +60,19 @@ public class NodeManager {
                         node.printNeighbours();
                         break;
                     case 3:
+                        node.initateSharingRumor();
                         break;
                     case 4:
+                        node.printHostInfo();
                         break;
                     case 5:
                         break;
                     case 6:
                         break;
                     case 7:
-                        node.printHostInfo();
                         break;
                     case 9:
+                        node.initateShuttingDownAllNodes();
                         break;
                 }
                 if (command == 0) {
@@ -80,7 +83,7 @@ public class NodeManager {
             }
 
         } catch (Exception ex) {
-            Logger.err(ex.getMessage());
+            logger.err(ex.getMessage());
         }
     }
 
@@ -106,7 +109,7 @@ public class NodeManager {
             graphFile = cmd.getOptionValue(OPTION_GRAPH);
         } catch (ParseException e) {
             formatter.printHelp(HELP_NAME, options);
-            System.err.println(e.getMessage());
+            logger.err(e.getMessage());
         }
     }
 
@@ -122,10 +125,7 @@ public class NodeManager {
                 + "\n 1: (A1) Send message "
                 + "\n 2: Print neighbours "
                 + "\n 3: Initate sharing rumor "
-                + "\n 4: Initate sharing rumor 1 "
-                + "\n 5: Initate sharing rumor 2"
-                + "\n 6: Initate sharing rumor 3"
-                + "\n 7: Print Info"
+                + "\n 4: Print Info"
                 + "\n 9: Initate shutting down all nodes ");
         System.out.println(NodeManager.SEPARATOR);
         System.out.print("_> ");
