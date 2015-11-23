@@ -4,6 +4,10 @@ import htw.ava.Node;
 
 import java.io.Serializable;
 
+/**
+ * Class that manages the different messages
+ * (kind of container for the different message types)
+ */
 public class Message implements Serializable {
 
     //Constants which represents the type of the message
@@ -21,12 +25,24 @@ public class Message implements Serializable {
     private Serializable data;
     private String senderId;
 
+    /**
+     * Creates an Message object
+     *
+     * @param senderId id of the sender
+     * @param type type of the message
+     * @param data the message itself
+     */
     public Message(String senderId, int type, Serializable data){
         this.senderId = senderId;
         this.type = type;
         this.data = data;
     }
 
+    /**
+     * Apply the chnages to the node caused by the message
+     *
+     * @param nodeToAffect Node which receives the message
+     */
     public void process(Node nodeToAffect){
         //Matching the message type to know which operation the node should do
         switch (this.type) {
@@ -45,21 +61,28 @@ public class Message implements Serializable {
     }
 
 
+    /**
+     *
+     * @return type of the message
+     */
     public int getType() {
         return type;
     }
 
+    /**
+     *
+     * @return the message itself
+     */
     public Object getData() {
         return data;
     }
 
+    /**
+     *
+     * @return the id of the sender node
+     */
     public String getSenderId() {
         return senderId;
     }
-
-    public String serialize(){
-        return "";
-    }
-
 
 }

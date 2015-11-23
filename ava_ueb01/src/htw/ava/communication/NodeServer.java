@@ -9,7 +9,7 @@ import java.net.ServerSocket;
 import java.net.Socket;
 
 /**
- * Created by cgeidt on 21.10.2015.
+ * Class which is waiting to receive a message
  */
 public class NodeServer implements Runnable {
     private ServerSocket serverSocket;
@@ -18,16 +18,31 @@ public class NodeServer implements Runnable {
     private Node node;
 
 
+    /**
+     * Creates a NodeServer object
+     *
+     * @param id id of the own node
+     * @param hostname name of the own node
+     * @param port port of the own node
+     * @param node reference of the node itself
+     */
     public NodeServer(String id, String hostname, int port, Node node) {
         this.nodeInfo = new NodeInfo(id, hostname, port);
         this.node = node;
     }
 
+    /**
+     *
+     * @return the information about the node
+     */
     public NodeInfo getNodeInfo() {
         return nodeInfo;
     }
 
     @Override
+    /**
+     * start listening for a message
+     */
     public void run() {
         this.running = true;
         try {
@@ -60,7 +75,7 @@ public class NodeServer implements Runnable {
     }
 
     /**
-     * makes the node stop listening for messages
+     * Makes the node stop listening for messages
      */
     public void stop() {
         this.running = false;

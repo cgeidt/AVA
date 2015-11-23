@@ -10,29 +10,57 @@ import java.io.IOException;
 import java.util.ArrayList;
 
 /**
- * Created by cgeidt on 21.10.2015.
+ * Class that implements the complete logic of a node
  */
 public class Node {
     private Rumor rumor;
     private NodeServer nodeServer;
     private ArrayList<NodeInfo> neighbours;
 
+    /**
+     * Create an node object
+     *
+     * @param id id the node will get
+     * @param hostname hostname the node will get
+     * @param port port the node will get
+     * @param neighbours neighbours of the node
+     */
     public Node(String id, String hostname, int port, ArrayList<NodeInfo> neighbours) {
         this.rumor = new Rumor();
         initNode(id, hostname, port, neighbours);
     }
 
+    /**
+     * Creates a node object using a NodeInfo object
+     *
+     * @param nodeInfo object which contains the information of the host node
+     * @param neighbours neighbours of the node
+     */
     public Node(NodeInfo nodeInfo, ArrayList<NodeInfo> neighbours) {
         this.rumor = new Rumor();
         initNode(nodeInfo.getId(), nodeInfo.getHostname(), nodeInfo.getPort(), neighbours);
     }
 
+    /**
+     * Initiates the node
+     *
+     * @param id id the node will get
+     * @param hostname hostname the node will get
+     * @param port port the node will get
+     * @param neighbours neighbours of the node
+     */
     private void initNode(String id, String hostname, int port, ArrayList<NodeInfo> neighbours){
         this.neighbours = neighbours;
         startServer(id, hostname, port);
     }
 
-
+    /**
+     * Starts the node server logic
+     *
+     * @param id id the node will get
+     * @param hostname hostname the node will get
+     * @param port port the node will get
+     */
     private void startServer(String id, String hostname, int port){
         this.nodeServer = new NodeServer(id, hostname, port, this);
         //listener thread
@@ -42,18 +70,18 @@ public class Node {
 
 
     /**
-     * send a message to all neigbours
+     * send a message to all neighbours
      *
-     * @param msg object which conains the message
+     * @param msg object which contains the message
      */
     private void sendMessage(Message msg) {
         this.sendMessage(msg, -1, "-1");
     }
 
     /**
-     * send a message to a spezified amount of neighbours
+     * send a message to a amount of neighbours
      *
-     * @param msg object which conains the message
+     * @param msg object which contains the message
      * @param limit the limit how much neighbours should get a message
      */
     private void sendMessage(Message msg, int limit) {
@@ -61,10 +89,10 @@ public class Node {
     }
 
     /**
-     * send message to all beighbours expect one
+     * send message to all neighbours expect one
      *
-     * @param msg object which conains the message
-     * @param except the id of a neighbour which shouldnt get the message
+     * @param msg object which contains the message
+     * @param except the id of a neighbour which should not get the message
      */
     private void sendMessage(Message msg, String except) {
         this.sendMessage(msg, -1, except);
@@ -76,12 +104,12 @@ public class Node {
      *
      * @param msg object which contains the message
      * @param limit the limit how much neighbours should get a message
-     * @param except the id of a neighbour which shouldnt get the message
+     * @param except the id of a neighbour which should not get the message
      */
     private void sendMessage(Message msg, int limit, String except) {
         int count = 0;
         for (NodeInfo nodeInfo : neighbours) {
-            // checks if current node is the one which shouldnt get the message
+            // checks if current node is the one which should not get the message
             if (nodeInfo.getId().equals(except)) {
                 continue;
             }
@@ -137,7 +165,7 @@ public class Node {
      * start sharing the rumor
      *
      */
-    public void initateSharingRumor() {
+    public void initiateSharingRumor() {
         Message msg = new Message(nodeServer.getNodeInfo().getId(), Message.TYPE_RUMOR, nodeServer.getNodeInfo());
         sendMessage(msg);
     }
@@ -164,7 +192,7 @@ public class Node {
     /**
      * shuts down the node and tels all neighbours to shut down
      */
-    public void initateShuttingDownAllNodes() {
+    public void initiateShuttingDownAllNodes() {
         Message msg = new Message(nodeServer.getNodeInfo().getId(), Message.TYPE_SHUTDOWN_NODES, null);
         sendMessage(msg);
         System.out.println("------------------------------------------------------------");

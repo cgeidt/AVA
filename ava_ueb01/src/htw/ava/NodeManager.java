@@ -17,6 +17,7 @@ import org.apache.commons.cli.ParseException;
 
 public class NodeManager {
 
+    //Creating the logger
     public final static Logger logger = new Logger(false);
 
     public static final String SEPARATOR = "\n::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::\n";
@@ -41,7 +42,7 @@ public class NodeManager {
     public static void start(String[] args) {
         try {
 
-            interpretComandLine(args);
+            interpretCommandLine(args);
 
             GraphManager graphManager = new GraphManager(hostsFile, graphFile);
             NodeInfo hostNodeInfo = graphManager.getNodeConnectivityInfoForId(hostId);
@@ -60,7 +61,7 @@ public class NodeManager {
                         node.printNeighbours();
                         break;
                     case 3:
-                        node.initateSharingRumor();
+                        node.initiateSharingRumor();
                         break;
                     case 4:
                         node.printHostInfo();
@@ -72,7 +73,7 @@ public class NodeManager {
                     case 7:
                         break;
                     case 9:
-                        node.initateShuttingDownAllNodes();
+                        node.initiateShuttingDownAllNodes();
                         break;
                 }
                 if (command == 0) {
@@ -88,11 +89,11 @@ public class NodeManager {
     }
 
     /**
-     * Method which interpretes the command line input
+     * Method which interprets the command line input
      *
      * @param args the command line arguments
      */
-    private static void interpretComandLine(String[] args) {
+    private static void interpretCommandLine(String[] args) {
         Options options = new Options();
         HelpFormatter formatter = new HelpFormatter();
 

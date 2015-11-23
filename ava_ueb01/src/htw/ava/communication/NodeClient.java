@@ -7,21 +7,32 @@ import java.io.ObjectOutputStream;
 import java.net.Socket;
 
 /**
- * Created by cgeidt on 27.10.2015.
+ * Class which is responsible for sending the messages
  */
 public class NodeClient implements Runnable {
 
     private Message msg;
     private Socket socket;
 
+    /**
+     *
+     * Creates and NodeClient
+     *
+     * @param targetHostname hostname of the target
+     * @param targetPort port of the target
+     * @param msg message to send to the target
+     * @throws IOException
+     */
     public NodeClient(String targetHostname, int targetPort, Message msg) throws IOException {
         this.socket = new Socket(targetHostname, targetPort);
         this.msg = msg;
     }
 
     @Override
+    /**
+     * Starts sending the message
+     */
     public void run() {
-
         try {
             ObjectOutputStream oos = new ObjectOutputStream(socket.getOutputStream());
             oos.writeObject(this.msg);

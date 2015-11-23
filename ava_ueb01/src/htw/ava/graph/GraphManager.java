@@ -15,7 +15,7 @@ import java.util.ArrayList;
 import java.util.Scanner;
 
 /**
- * Created by cgeidt on 28.10.2015.
+ * Class with utils to manage the graph and get information about the graph
  */
 public class GraphManager {
 
@@ -38,13 +38,13 @@ public class GraphManager {
 
     /**
      *
-     * @param id the id of the node which neigbours you want to get
-     * @return returns a list all neigbours for the given host id
+     * @param id the id of the node which neighbours you want to get
+     * @return returns a list all neighbours for the given host id
      * @throws FileNotFoundException
      * @throws ParseException
      * @throws Exception
      */
-    public ArrayList<NodeInfo> getHostsListForId(String id) throws FileNotFoundException, ParseException, Exception {
+    public ArrayList<NodeInfo> getHostsListForId(String id) throws Exception {
         //Reading the graphfile
         File f = new File(this.fileGraph);
         FileReader in = new FileReader(f);
@@ -108,7 +108,7 @@ public class GraphManager {
     }
 
     /**
-     * Chekcs if the given list contains a host
+     * Checks if the given list contains a host
      *
      * @param hosts list of hosts
      * @param hostId host id to check
@@ -126,15 +126,15 @@ public class GraphManager {
     }
 
     /**
-     * Return the connecttivity info for the given node-id
+     * Returns the information for the given node-id
      *
-     * @param id the id of the host whcih connectivity information u want
-     * @return NodeInfo object with al host inofrmation
+     * @param id the id of the host which connectivity information u want
+     * @return NodeInfo object with all information
      * @throws FileNotFoundException
      * @throws Exception
      */
     public NodeInfo getNodeConnectivityInfoForId(String id) throws FileNotFoundException, Exception {
-        //reading and parsing the hostsfile
+        //reading and parsing the hostfile
         JsonReader reader = new JsonReader(new FileReader(fileHosts));
         JsonParser parser = new JsonParser();
         JsonArray hostsArray = parser.parse(reader).getAsJsonArray();

@@ -3,7 +3,7 @@ package htw.ava.communication;
 import java.io.Serializable;
 
 /**
- * Created by cgeidt on 28.10.2015.
+ * Class contains information about a node
  */
 public class NodeInfo implements Serializable {
     private String id;
@@ -16,18 +16,34 @@ public class NodeInfo implements Serializable {
         this.port = port;
     }
 
+    /**
+     *
+     * @return the id of the node
+     */
     public String getId() {
         return id;
     }
 
+    /**
+     *
+     * @return the hostname of the node
+     */
     public String getHostname() {
         return hostname;
     }
 
+    /**
+     *
+     * @return the port of the node
+     */
     public int getPort() {
         return port;
     }
 
+    /**
+     *
+     * @return return the inforation about the node as a string
+     */
     public String toString(){
         StringBuilder sb = new StringBuilder();
         sb.append("##################   HostInfo    ###########################").append("\n");
