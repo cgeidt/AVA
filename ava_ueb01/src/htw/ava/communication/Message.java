@@ -55,8 +55,9 @@ public class Message implements Serializable {
                 break;
             case TYPE_COMMAND_SHUTDOWN_NODES:
                 nodeToAffect.processNodesShutdown(getSenderId());
+                break;
             default:
-                NodeManager.logger.err(UNKNOWN_TYPE);
+                NodeManager.logger.err(UNKNOWN_TYPE+": "+this.getType());
                 break;
         }
     }
