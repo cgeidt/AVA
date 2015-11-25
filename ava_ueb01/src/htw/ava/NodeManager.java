@@ -29,11 +29,14 @@ public class NodeManager {
     private static final String OPTION_NEIGHBOURS_MSG = "file with list of all hosts";
     private static final String OPTION_GRAPH = "graph";
     private static final String OPTION_GRAPH_MSG = "file with graph";
+    private static final String OPTION_BELIEVE_RUMOR = "rumor";
+    private static final String OPTION_BELIEVE_RUMOR_MSG = "believes rumor after heard it x times";
     private static final String HELP_NAME = "Node";
 
     private static String hostsFile;
     private static String graphFile;
     private static String hostId;
+    private static int rumorCount;
 
 
     /**
@@ -47,7 +50,7 @@ public class NodeManager {
             GraphManager graphManager = new GraphManager(hostsFile, graphFile);
             NodeInfo hostNodeInfo = graphManager.getNodeConnectivityInfoForId(hostId);
             ArrayList<NodeInfo> neighbours = graphManager.getHostsListForId(hostId);
-            Node node = new Node(hostNodeInfo, neighbours);
+            Node node = new Node(hostNodeInfo, neighbours, rumorCount);
 
             int command;
             boolean run = true;
@@ -100,6 +103,7 @@ public class NodeManager {
         options.addOption(OPTION_ID, true, OPTION_ID_MSG);
         options.addOption(OPTION_HOSTS, true, OPTION_NEIGHBOURS_MSG);
         options.addOption(OPTION_GRAPH, true, OPTION_GRAPH_MSG);
+        options.addOption(OPTION_BELIEVE_RUMOR, true, OPTION_BELIEVE_RUMOR_MSG);
 
         CommandLineParser parser = new BasicParser();
         try {
@@ -108,6 +112,7 @@ public class NodeManager {
             hostId = cmd.getOptionValue(OPTION_ID);
             hostsFile = cmd.getOptionValue(OPTION_HOSTS);
             graphFile = cmd.getOptionValue(OPTION_GRAPH);
+            rumorCount = Integer.valueOf(cmd.getOptionValue(OPTION_BELIEVE_RUMOR));
         } catch (ParseException e) {
             formatter.printHelp(HELP_NAME, options);
             logger.err(e.getMessage());

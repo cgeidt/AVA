@@ -1,6 +1,7 @@
 package htw.ava.communication;
 
 import htw.ava.Node;
+import htw.ava.NodeManager;
 
 import java.io.Serializable;
 
@@ -11,9 +12,9 @@ import java.io.Serializable;
 public class Message implements Serializable {
 
     //Constants which represents the type of the message
-    public static final int TYPE_RUMOR = 0;
-    public static final int TYPE_NODE_INFO = 1;
-    public static final int TYPE_SHUTDOWN_NODES = 2;
+    public static final int TYPE_APPLICATION_RUMOR = 0;
+    public static final int TYPE_APPLICATION_NODE_INFO = 1;
+    public static final int TYPE_COMMAND_SHUTDOWN_NODES = 2;
     private static final String UNKNOWN_TYPE = "Received Message with unknown type";
 
     /**
@@ -46,16 +47,16 @@ public class Message implements Serializable {
     public void process(Node nodeToAffect){
         //Matching the message type to know which operation the node should do
         switch (this.type) {
-            case TYPE_NODE_INFO:
+            case TYPE_APPLICATION_NODE_INFO:
                 nodeToAffect.processNodeInfoReceived((NodeInfo)data);
                 break;
-            case TYPE_RUMOR:
+            case TYPE_APPLICATION_RUMOR:
                 nodeToAffect.processRumorReceived(getSenderId());
                 break;
-            case TYPE_SHUTDOWN_NODES:
+            case TYPE_COMMAND_SHUTDOWN_NODES:
                 nodeToAffect.processNodesShutdown(getSenderId());
             default:
-                System.out.println(UNKNOWN_TYPE);
+                NodeManager.logger.err(UNKNOWN_TYPE);
                 break;
         }
     }

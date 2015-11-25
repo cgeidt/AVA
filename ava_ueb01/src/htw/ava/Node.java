@@ -24,9 +24,10 @@ public class Node {
      * @param hostname hostname the node will get
      * @param port port the node will get
      * @param neighbours neighbours of the node
+     * @param rumorTrustLevel believes rumor after x times
      */
-    public Node(String id, String hostname, int port, ArrayList<NodeInfo> neighbours) {
-        this.rumor = new Rumor();
+    public Node(String id, String hostname, int port, ArrayList<NodeInfo> neighbours, int rumorTrustLevel) {
+        this.rumor = new Rumor(rumorTrustLevel);
         initNode(id, hostname, port, neighbours);
     }
 
@@ -35,9 +36,10 @@ public class Node {
      *
      * @param nodeInfo object which contains the information of the host node
      * @param neighbours neighbours of the node
+     * @param rumorTrustLevel believes rumor after x times
      */
-    public Node(NodeInfo nodeInfo, ArrayList<NodeInfo> neighbours) {
-        this.rumor = new Rumor();
+    public Node(NodeInfo nodeInfo, ArrayList<NodeInfo> neighbours, int rumorTrustLevel) {
+        this.rumor = new Rumor(rumorTrustLevel);
         initNode(nodeInfo.getId(), nodeInfo.getHostname(), nodeInfo.getPort(), neighbours);
     }
 
@@ -142,7 +144,7 @@ public class Node {
      * send my host info to neighbours
      */
     public void sendMyHostInfo() {
-        Message msg = new Message(nodeServer.getNodeInfo().getId(), Message.TYPE_NODE_INFO, nodeServer.getNodeInfo());
+        Message msg = new Message(nodeServer.getNodeInfo().getId(), Message.TYPE_APPLICATION_NODE_INFO, nodeServer.getNodeInfo());
         sendMessage(msg, 3);
     }
 
@@ -158,7 +160,7 @@ public class Node {
         sb.append("Message received.\n");
         sb.append("Hostname/IP:Port = " + nodeInfo.getHostname() + ":" + nodeInfo.getPort()+"\n");
         sb.append("------------------------------------------------------------");
-        NodeManager.logger.debug(sb.toString());
+        NodeManager.logger.log(sb.toString());
     }
 
     /**
@@ -166,7 +168,7 @@ public class Node {
      *
      */
     public void initiateSharingRumor() {
-        Message msg = new Message(nodeServer.getNodeInfo().getId(), Message.TYPE_RUMOR, nodeServer.getNodeInfo());
+        Message msg = new Message(nodeServer.getNodeInfo().getId(), Message.TYPE_APPLICATION_RUMOR, nodeServer.getNodeInfo());
         sendMessage(msg);
     }
 
@@ -182,7 +184,7 @@ public class Node {
                 NodeManager.logger.log("I am trusting the rumor now!");
             }
             NodeManager.logger.debug("Node "+senderId+" told me the rumor.");
-            Message msg = new Message(nodeServer.getNodeInfo().getId(), Message.TYPE_RUMOR, null);
+            Message msg = new Message(nodeServer.getNodeInfo().getId(), Message.TYPE_APPLICATION_RUMOR, null);
             sendMessage(msg, senderId);
         } else {
             NodeManager.logger.debug("Node " + senderId + " told me the rumor, but i already believe it.");
@@ -193,7 +195,7 @@ public class Node {
      * shuts down the node and tels all neighbours to shut down
      */
     public void initiateShuttingDownAllNodes() {
-        Message msg = new Message(nodeServer.getNodeInfo().getId(), Message.TYPE_SHUTDOWN_NODES, null);
+        Message msg = new Message(nodeServer.getNodeInfo().getId(), Message.TYPE_COMMAND_SHUTDOWN_NODES, null);
         sendMessage(msg);
         System.out.println("------------------------------------------------------------");
         System.out.println("Shutting down node in 3 sec and telling neighbours to shut down");
@@ -212,7 +214,7 @@ public class Node {
      * @param senderID the id of the node which has sent the message
      */
     public void processNodesShutdown(String senderID) {
-        Message msg = new Message(nodeServer.getNodeInfo().getId(), Message.TYPE_SHUTDOWN_NODES, null);
+        Message msg = new Message(nodeServer.getNodeInfo().getId(), Message.TYPE_COMMAND_SHUTDOWN_NODES, null);
         sendMessage(msg, senderID);
         System.out.println("------------------------------------------------------------");
         System.out.println("Shutting down node in 3 sec and telling neighbours to shut down");

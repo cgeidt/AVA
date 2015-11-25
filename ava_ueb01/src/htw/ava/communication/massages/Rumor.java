@@ -7,12 +7,15 @@ import java.io.Serializable;
  */
 public class Rumor implements Serializable {
     private int counter;
-    private static final int TRUST_LEVEL = 2;
+    private int trustLevel;
 
     /**
      * Creates a new rumor
+     *
+     * @param trustLevel believes rumor after x times
      */
-    public Rumor() {
+    public Rumor(int trustLevel) {
+        this.trustLevel = trustLevel;
         counter = 0;
     }
 
@@ -32,6 +35,6 @@ public class Rumor implements Serializable {
      * @return true if it is trusted | false if its not trusted
      */
     public boolean canBeTrusted(){
-        return counter >= TRUST_LEVEL;
+        return counter >= trustLevel;
     }
 }
