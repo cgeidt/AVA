@@ -87,7 +87,7 @@ public class NodeManager {
             }
 
         } catch (Exception ex) {
-            logger.err(ex.getMessage());
+           ex.printStackTrace();
         }
     }
 

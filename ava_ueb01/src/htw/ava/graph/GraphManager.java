@@ -144,15 +144,20 @@ public class GraphManager {
         //gernerating NodeInfo for id
         for (JsonElement obj : hostsArray) {
             JsonObject host = obj.getAsJsonObject();
-            String hostId = host.get(GraphManager.JSON_ID).getAsString();
-            if (hostId.equals(id)) {
-                nodeInfo = new NodeInfo(
-                        hostId,
-                        host.get(GraphManager.JSON_HOSTNAME).getAsString(),
-                        Integer.valueOf(host.get(GraphManager.JSON_PORT).getAsString())
-                );
-                break;
+            try{
+                String hostId = host.get(GraphManager.JSON_ID).getAsString();
+                if (hostId.equals(id)) {
+                    nodeInfo = new NodeInfo(
+                            hostId,
+                            host.get(GraphManager.JSON_HOSTNAME).getAsString(),
+                            Integer.valueOf(host.get(GraphManager.JSON_PORT).getAsString())
+                    );
+                    break;
+                }
+            }catch(Exception e){
+                throw new JsonParseException("Fehler in der JSON-Konfigdatei: Bitte README.pdf fuer das richtige Format lesen");
             }
+
         }
 
         if (nodeInfo == null) {

@@ -1,6 +1,7 @@
 package htw.ava.communication.massages;
 
 import java.io.Serializable;
+import java.util.ArrayList;
 
 /**
  * Class contains logic of message rumor
@@ -8,6 +9,8 @@ import java.io.Serializable;
 public class Rumor implements Serializable {
     private int counter;
     private int trustLevel;
+    private ArrayList<String> heardRumorFrom;
+    private boolean isShared;
 
     /**
      * Creates a new rumor
@@ -15,7 +18,9 @@ public class Rumor implements Serializable {
      * @param trustLevel believes rumor after x times
      */
     public Rumor(int trustLevel) {
+        this.heardRumorFrom = new ArrayList<String>();
         this.trustLevel = trustLevel;
+        this.isShared = false;
         counter = 0;
     }
 
@@ -36,5 +41,29 @@ public class Rumor implements Serializable {
      */
     public boolean canBeTrusted(){
         return counter >= trustLevel;
+    }
+
+    /**
+     *
+     * @param id
+     * @return if the rumor is heard from a given neighbour
+     */
+    public boolean heardFromNeighbour(String id){
+       return  heardRumorFrom.contains(id);
+    }
+
+    /**
+     *
+     * @return if the rumor got shared with the neighbours already
+     */
+    public boolean isShared(){
+        return isShared;
+    }
+
+    /**
+     * Sets the rumor to the state shared
+     */
+    public void shared(){
+        this.isShared = true;
     }
 }

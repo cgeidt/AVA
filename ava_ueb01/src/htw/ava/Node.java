@@ -170,6 +170,7 @@ public class Node {
     public void initiateSharingRumor() {
         Message msg = new Message(nodeServer.getNodeInfo().getId(), Message.TYPE_APPLICATION_RUMOR, nodeServer.getNodeInfo());
         sendMessage(msg);
+
     }
 
     /**
@@ -178,17 +179,24 @@ public class Node {
      * @param senderId id of the node which has sent the rumor
      */
     public void processRumorReceived(String senderId) {
-        // do i already believe the rumor?
-        if (!rumor.canBeTrusted()) {
-            if(rumor.receivedRumor()){
-                NodeManager.logger.log("I am trusting the rumor now!");
+        //did this neighbour tell me the rumor already
+        if(!rumor.heardFromNeighbour(senderId)){
+            // do i already believe the rumor?
+            if (!rumor.canBeTrusted()) {
+                if(rumor.receivedRumor()){
+                    NodeManager.logger.log("I am trusting the rumor now!");
+                }
+                NodeManager.logger.debug("Node "+senderId+" told me the rumor.");
+                if(!rumor.isShared()){
+                    Message msg = new Message(nodeServer.getNodeInfo().getId(), Message.TYPE_APPLICATION_RUMOR, null);
+                    sendMessage(msg, senderId);
+                    rumor.shared();
+                }
+            } else {
+                NodeManager.logger.debug("Node " + senderId + " told me the rumor, but i already believe it.");
             }
-            NodeManager.logger.debug("Node "+senderId+" told me the rumor.");
-            Message msg = new Message(nodeServer.getNodeInfo().getId(), Message.TYPE_APPLICATION_RUMOR, null);
-            sendMessage(msg, senderId);
-        } else {
-            NodeManager.logger.debug("Node " + senderId + " told me the rumor, but i already believe it.");
         }
+
     }
 
     /**
