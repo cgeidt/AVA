@@ -52,7 +52,7 @@ public class Message implements Serializable {
                 nodeToAffect.processNodeInfoReceived((NodeInfo)data);
                 break;
             case TYPE_APPLICATION_GAME:
-                nodeToAffect.processGame((Game)data);
+                nodeToAffect.processGame((Game)data, senderId);
                 break;
             case TYPE_COMMAND_SHUTDOWN_NODES:
                 nodeToAffect.processNodesShutdown(getSenderId());

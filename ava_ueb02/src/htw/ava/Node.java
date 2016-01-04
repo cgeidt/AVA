@@ -15,25 +15,18 @@ import java.util.ArrayList;
 public class Node {
     private NodeServer nodeServer;
     private ArrayList<NodeInfo> neighbours;
-
-    /** Variables used to realise the game */
-    private static final int GAME_MODE_STATIC = 0;
-    private static final int GAME_ODE_DYNAMIC = 1;
-
-    private int money;
-    private int acceptLimitLeader;
-    private int acceptLimitFollower;
-    private int gameMode;
+    private GameManager gameManager;
 
     /**
      * Creates a node object using a NodeInfo object
      *
      * @param nodeInfo object which contains the information of the host node
      * @param neighbours neighbours of the node
+     * @param minToAccept amount of money the follower will accept
+     * @param gameMode mode of the game: see constants of class GameManager
      */
-    public Node(NodeInfo nodeInfo, ArrayList<NodeInfo> neighbours) {
-        money = 0;
-        initNode(nodeInfo.getId(), nodeInfo.getHostname(), nodeInfo.getPort(), neighbours);
+    public Node(NodeInfo nodeInfo, ArrayList<NodeInfo> neighbours, int minToAccept, int gameMode) {
+        initNode(nodeInfo.getId(), nodeInfo.getHostname(), nodeInfo.getPort(), neighbours, minToAccept, gameMode);
     }
 
     /**
@@ -43,8 +36,11 @@ public class Node {
      * @param hostname hostname the node will get
      * @param port port the node will get
      * @param neighbours neighbours of the node
+     * @param minToAccept amount of money the follower will accept
+     * @param gameMode mode of the game: see constants of class GameManager
      */
-    private void initNode(String id, String hostname, int port, ArrayList<NodeInfo> neighbours){
+    private void initNode(String id, String hostname, int port, ArrayList<NodeInfo> neighbours, int minToAccept, int gameMode){
+        this.gameManager = new GameManager(minToAccept, gameMode);
         this.neighbours = neighbours;
         startServer(id, hostname, port);
     }
@@ -61,6 +57,29 @@ public class Node {
         //listener thread
         Thread listenerThread = new Thread(nodeServer);
         listenerThread.start();
+    }
+
+    private void sendMessageToNode(String id, Message msg){
+        for (NodeInfo nodeInfo : neighbours) {
+            if(nodeInfo.getId().equals(id)){
+                try {
+                    //sending message
+                    Thread sendThread = new Thread(new NodeClient(nodeInfo.getHostname(), nodeInfo.getPort(), msg));
+                    sendThread.start();
+                    NodeManager.logger.debug("Sent message of type " + Message.TYPE_MAPPING[msg.getType()] + " to node " + nodeInfo.getId());
+                } catch (IOException ex) {
+                    StringBuilder sb = new StringBuilder();
+                    sb.append("------------------------------------------------------------");
+                    sb.append(ex.getMessage());
+                    sb.append("Could not find node with id " + nodeInfo.getId());
+                    sb.append("Hostname/IP:Port = " + nodeInfo.getHostname() + ":" + nodeInfo.getPort());
+                    sb.append("------------------------------------------------------------");
+                    NodeManager.logger.err(sb.toString());
+
+                }
+            }
+
+        }
     }
 
 
@@ -207,12 +226,18 @@ public class Node {
     }
 
 
-    public void processGame(Game game){
+    public void processGame(Game game, String senderId){
         switch (game.getGameState()){
             case Game.GAME_STATE_REQUEST:
-
+                boolean isAccepted = gameManager.play(game);
+                NodeManager.logger.debug("Request from: "+senderId+"\nAccepted: "+isAccepted);
+                Message msg = new Message(nodeServer.getNodeInfo().getId(), Message.TYPE_APPLICATION_GAME, game);
+                sendMessageToNode(senderId, msg);
+                NodeManager.logger.debug("Sent answer");
                 break;
             case Game.GAME_STATE_ACCEPTED:
+                NodeManager.logger.debug("Host "+senderId+" accepted request");
+                gameManager.accepted(game);
                 break;
             case Game.GAME_STATE_DENIED:
                 break;
@@ -221,18 +246,7 @@ public class Node {
         }
     }
 
-    private boolean acceptGame(Game game){
-        switch (gameMode){
-            case GAME_MODE_STATIC:
-                if(game.foll)
-                break;
-            case GAME_ODE_DYNAMIC:
-                break;
-            default:
-                throw new RuntimeException("Invalid GameMode");
-        }
 
-    }
 
     /**
      * prints own host info

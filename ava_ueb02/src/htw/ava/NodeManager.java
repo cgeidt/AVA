@@ -4,16 +4,12 @@ package htw.ava;
  * Created by cgeidt on 21.10.2015.
  */
 import java.util.ArrayList;
+import java.util.IntSummaryStatistics;
 import java.util.Scanner;
 
 import htw.ava.communication.NodeInfo;
 import htw.ava.graph.GraphManager;
-import org.apache.commons.cli.BasicParser;
-import org.apache.commons.cli.CommandLine;
-import org.apache.commons.cli.CommandLineParser;
-import org.apache.commons.cli.HelpFormatter;
-import org.apache.commons.cli.Options;
-import org.apache.commons.cli.ParseException;
+import org.apache.commons.cli.*;
 
 public class NodeManager {
 
@@ -27,10 +23,16 @@ public class NodeManager {
     private static final String OPTION_ID_MSG = "id of the host";
     private static final String OPTION_HOSTS = "hosts";
     private static final String OPTION_HOSTS_MSG = "file with list of all hosts";
+    private static final String OPTION_GAMEMODE = "gamemode";
+    private static final String OPTION_GAMEMODE_MSG = "mode of the played game: 0(static A1) or 1(dynamic A4)";
+    private static final String OPTION_GAME_FOLLOWER = "follower";
+    private static final String OPTION_GAME_FOLLOWER_MSG = "amount of money needed that the follower will play(only static)";
     private static final String HELP_NAME = "Node";
 
     private static String hostsFile;
     private static String hostId;
+    private static int minToAccept;
+    private static int gameMode;
 
 
     /**
@@ -44,7 +46,7 @@ public class NodeManager {
             GraphManager graphManager = new GraphManager(hostsFile);
             NodeInfo hostNodeInfo = graphManager.getNodeConnectivityInfoForId(hostId);
             ArrayList<NodeInfo> neighbours = graphManager.getHostsListForId(hostId);
-            Node node = new Node(hostNodeInfo, neighbours);
+            Node node = new Node(hostNodeInfo, neighbours, minToAccept, gameMode);
 
             int command;
             boolean run = true;
@@ -95,14 +97,18 @@ public class NodeManager {
 
         options.addOption(OPTION_ID, true, OPTION_ID_MSG);
         options.addOption(OPTION_HOSTS, true, OPTION_HOSTS_MSG);
+        options.addOption(OPTION_GAMEMODE, true, OPTION_GAMEMODE_MSG);
+        options.addOption(OPTION_GAME_FOLLOWER, false, OPTION_GAME_FOLLOWER_MSG);
 
 
-        CommandLineParser parser = new BasicParser();
+        CommandLineParser parser = new DefaultParser();
         try {
             CommandLine cmd = parser.parse(options, args);
 
             hostId = cmd.getOptionValue(OPTION_ID);
             hostsFile = cmd.getOptionValue(OPTION_HOSTS);
+            minToAccept = cmd.getOptionValue(OPTION_GAME_FOLLOWER) == null ? 0 : Integer.valueOf(cmd.getOptionValue(OPTION_GAME_FOLLOWER));
+            gameMode = Integer.valueOf(cmd.getOptionValue(OPTION_GAMEMODE));
         } catch (ParseException e) {
             formatter.printHelp(HELP_NAME, options);
             logger.err(e.getMessage());
