@@ -1,18 +1,14 @@
 package htw.ava.graph;
 
-import com.alexmerz.graphviz.Parser;
-import com.alexmerz.graphviz.objects.Edge;
-import com.alexmerz.graphviz.objects.Graph;
+
 import com.google.gson.*;
 import com.google.gson.stream.JsonReader;
 import htw.ava.communication.NodeInfo;
 
-import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.text.ParseException;
 import java.util.ArrayList;
-import java.util.Scanner;
 
 /**
  * Class with utils to manage the graph and get information about the graph

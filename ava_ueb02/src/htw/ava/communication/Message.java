@@ -13,15 +13,15 @@ import java.io.Serializable;
 public class Message implements Serializable {
 
     //Constants which represents the type of the message
-    public static final int TYPE_APPLICATION_NODE_INFO = 1;
-    public static final int TYPE_COMMAND_SHUTDOWN_NODES = 2;
-    public static final int TYPE_APPLICATION_GAME = 3;
-    private static final String UNKNOWN_TYPE = "Received Message with unknown type";
+    public static final int TYPE_APPLICATION_NODE_INFO = 0;
+    public static final int TYPE_COMMAND_SHUTDOWN_NODES = 1;
+    public static final int TYPE_APPLICATION_GAME = 2;
+    public static final String UNKNOWN_TYPE = "Received Message with unknown type";
 
     /**
      * Array to match the node type to a string which describes it
      */
-    public static final String[] TYPE_MAPPING = {"rumor","info", "shutdown all","rumor 1", "rumor 2", "rumor 3"};
+    public static final String[] TYPE_MAPPING = {"nodeinfo","shutdown", "game"};
 
     private int type;
     private Serializable data;
@@ -41,26 +41,12 @@ public class Message implements Serializable {
     }
 
     /**
-     * Apply the chnages to the node caused by the message
+     * Apply the changes to the node caused by the message
      *
      * @param nodeToAffect Node which receives the message
      */
     public void process(Node nodeToAffect){
-        //Matching the message type to know which operation the node should do
-        switch (this.type) {
-            case TYPE_APPLICATION_NODE_INFO:
-                nodeToAffect.processNodeInfoReceived((NodeInfo)data);
-                break;
-            case TYPE_APPLICATION_GAME:
-                nodeToAffect.processGame((Game)data, senderId);
-                break;
-            case TYPE_COMMAND_SHUTDOWN_NODES:
-                nodeToAffect.processNodesShutdown(getSenderId());
-                break;
-            default:
-                NodeManager.logger.err(UNKNOWN_TYPE+": "+this.getType());
-                break;
-        }
+        nodeToAffect.handleMessage(this);
     }
 
 

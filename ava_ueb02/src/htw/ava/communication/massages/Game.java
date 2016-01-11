@@ -12,17 +12,14 @@ public class Game implements Serializable {
     public final static int GAME_STATE_REQUEST = 0;
     public final static int GAME_STATE_ACCEPTED = 1;
     public final static int GAME_STATE_DENIED = 2;
+    public final static int GAME_STATE_NO_FOLLOWER= 3;
 
-    private int moneyTotal;
     private int leaderMoney;
     private int followerMoney;
     private int gameState;
 
-    public Game(int moneyTotal, int leaderMoney, int followerMoney){
-        if(leaderMoney + followerMoney != moneyTotal){
-            throw new RuntimeException("leader + follower are different with total amount of money");
-        }
-        this.moneyTotal = moneyTotal;
+    public Game(int leaderMoney, int followerMoney){
+
         this.leaderMoney= leaderMoney;
         this.followerMoney = followerMoney;
         this.gameState = GAME_STATE_REQUEST;
@@ -47,7 +44,8 @@ public class Game implements Serializable {
         return followerMoney;
     }
 
-    public int getMoneyTotal() {
-        return moneyTotal;
+
+    public void receivedByANonFollower(){
+        gameState = GAME_STATE_NO_FOLLOWER;
     }
 }

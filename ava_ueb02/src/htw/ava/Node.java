@@ -8,25 +8,24 @@ import htw.ava.communication.massages.Game;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Random;
 
 /**
  * Class that implements the complete logic of a node
  */
-public class Node {
-    private NodeServer nodeServer;
-    private ArrayList<NodeInfo> neighbours;
-    private GameManager gameManager;
+public abstract class Node {
+    protected NodeServer nodeServer;
+    protected ArrayList<NodeInfo> neighbours;
 
     /**
      * Creates a node object using a NodeInfo object
      *
      * @param nodeInfo object which contains the information of the host node
      * @param neighbours neighbours of the node
-     * @param minToAccept amount of money the follower will accept
-     * @param gameMode mode of the game: see constants of class GameManager
+
      */
-    public Node(NodeInfo nodeInfo, ArrayList<NodeInfo> neighbours, int minToAccept, int gameMode) {
-        initNode(nodeInfo.getId(), nodeInfo.getHostname(), nodeInfo.getPort(), neighbours, minToAccept, gameMode);
+    public Node(NodeInfo nodeInfo, ArrayList<NodeInfo> neighbours) {
+        initNode(nodeInfo.getId(), nodeInfo.getHostname(), nodeInfo.getPort(), neighbours);
     }
 
     /**
@@ -36,11 +35,8 @@ public class Node {
      * @param hostname hostname the node will get
      * @param port port the node will get
      * @param neighbours neighbours of the node
-     * @param minToAccept amount of money the follower will accept
-     * @param gameMode mode of the game: see constants of class GameManager
      */
-    private void initNode(String id, String hostname, int port, ArrayList<NodeInfo> neighbours, int minToAccept, int gameMode){
-        this.gameManager = new GameManager(minToAccept, gameMode);
+    private void initNode(String id, String hostname, int port, ArrayList<NodeInfo> neighbours){
         this.neighbours = neighbours;
         startServer(id, hostname, port);
     }
@@ -59,7 +55,7 @@ public class Node {
         listenerThread.start();
     }
 
-    private void sendMessageToNode(String id, Message msg){
+    protected void sendMessageToNode(String id, Message msg){
         for (NodeInfo nodeInfo : neighbours) {
             if(nodeInfo.getId().equals(id)){
                 try {
@@ -88,7 +84,7 @@ public class Node {
      *
      * @param msg object which contains the message
      */
-    private void sendMessage(Message msg) {
+    protected void sendMessage(Message msg) {
         this.sendMessage(msg, -1, "-1");
     }
 
@@ -98,7 +94,7 @@ public class Node {
      * @param msg object which contains the message
      * @param limit the limit how much neighbours should get a message
      */
-    private void sendMessage(Message msg, int limit) {
+    protected void sendMessage(Message msg, int limit) {
         this.sendMessage(msg, limit, "-1");
     }
 
@@ -108,7 +104,7 @@ public class Node {
      * @param msg object which contains the message
      * @param except the id of a neighbour which should not get the message
      */
-    private void sendMessage(Message msg, String except) {
+    protected void sendMessage(Message msg, String except) {
         this.sendMessage(msg, -1, except);
     }
 
@@ -120,7 +116,7 @@ public class Node {
      * @param limit the limit how much neighbours should get a message
      * @param except the id of a neighbour which should not get the message
      */
-    private void sendMessage(Message msg, int limit, String except) {
+    protected void sendMessage(Message msg, int limit, String except) {
         int count = 0;
         for (NodeInfo nodeInfo : neighbours) {
             // checks if current node is the one which should not get the message
@@ -142,6 +138,7 @@ public class Node {
                 NodeManager.logger.err(sb.toString());
 
             }
+            count++;
             //checks if limit is set
             if (limit != -1) {
                 //checks limit constrain
@@ -152,13 +149,6 @@ public class Node {
         }
     }
 
-    /**
-     * send my host info to neighbours
-     */
-    public void sendMyHostInfo() {
-        Message msg = new Message(nodeServer.getNodeInfo().getId(), Message.TYPE_APPLICATION_NODE_INFO, nodeServer.getNodeInfo());
-        sendMessage(msg, 3);
-    }
 
     /**
      *
@@ -226,27 +216,7 @@ public class Node {
     }
 
 
-    public void processGame(Game game, String senderId){
-        switch (game.getGameState()){
-            case Game.GAME_STATE_REQUEST:
-                boolean isAccepted = gameManager.play(game);
-                NodeManager.logger.debug("Request from: "+senderId+"\nAccepted: "+isAccepted);
-                Message msg = new Message(nodeServer.getNodeInfo().getId(), Message.TYPE_APPLICATION_GAME, game);
-                sendMessageToNode(senderId, msg);
-                NodeManager.logger.debug("Sent answer");
-                break;
-            case Game.GAME_STATE_ACCEPTED:
-                NodeManager.logger.debug("Host "+senderId+" accepted request");
-                gameManager.accepted(game);
-                break;
-            case Game.GAME_STATE_DENIED:
-                break;
-            default:
-                throw new RuntimeException("Invalid GameState");
-        }
-    }
-
-
+    abstract public void handleMessage(Message msg);
 
     /**
      * prints own host info
@@ -257,6 +227,12 @@ public class Node {
 
     public void shutdown(){
         nodeServer.stop();
+    }
+
+    protected void sendMessageToRandomNode(Message msg){
+        Random random = new Random();
+        int rndIndex = random.nextInt(neighbours.size());
+        sendMessageToNode(neighbours.get(rndIndex).getId(),msg);
     }
 
 }

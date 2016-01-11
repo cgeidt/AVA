@@ -3,10 +3,13 @@ package htw.ava;
 /**
  * Created by cgeidt on 21.10.2015.
  */
+import java.io.FileNotFoundException;
+import java.io.FileReader;
 import java.util.ArrayList;
-import java.util.IntSummaryStatistics;
 import java.util.Scanner;
 
+import com.google.gson.*;
+import com.google.gson.stream.JsonReader;
 import htw.ava.communication.NodeInfo;
 import htw.ava.graph.GraphManager;
 import org.apache.commons.cli.*;
@@ -14,7 +17,7 @@ import org.apache.commons.cli.*;
 public class NodeManager {
 
     //Creating the logger
-    public final static Logger logger = new Logger(false);
+    public final static Logger logger = new Logger(true);
 
     public static final String SEPARATOR = "\n::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::\n";
 
@@ -23,16 +26,14 @@ public class NodeManager {
     private static final String OPTION_ID_MSG = "id of the host";
     private static final String OPTION_HOSTS = "hosts";
     private static final String OPTION_HOSTS_MSG = "file with list of all hosts";
-    private static final String OPTION_GAMEMODE = "gamemode";
-    private static final String OPTION_GAMEMODE_MSG = "mode of the played game: 0(static A1) or 1(dynamic A4)";
-    private static final String OPTION_GAME_FOLLOWER = "follower";
-    private static final String OPTION_GAME_FOLLOWER_MSG = "amount of money needed that the follower will play(only static)";
+    private static final String OPTION_EXERCISE = "exercise";
+    private static final String OPTION_EXERCISE_MSG = "example: --exercise <exerciseNumber> <cfgFile>";
     private static final String HELP_NAME = "Node";
 
     private static String hostsFile;
     private static String hostId;
-    private static int minToAccept;
-    private static int gameMode;
+    private static JsonObject exerciseParams;
+    private static int exerciseNumber;
 
 
     /**
@@ -46,7 +47,22 @@ public class NodeManager {
             GraphManager graphManager = new GraphManager(hostsFile);
             NodeInfo hostNodeInfo = graphManager.getNodeConnectivityInfoForId(hostId);
             ArrayList<NodeInfo> neighbours = graphManager.getHostsListForId(hostId);
-            Node node = new Node(hostNodeInfo, neighbours, minToAccept, gameMode);
+            GameNode node = null;
+            switch (exerciseNumber){
+                case 2:
+                    String type = exerciseParams.get("type").getAsString();
+                    if(type.equals("leader")){
+                        int moneyLeader = exerciseParams.get("leader").getAsInt();
+                        int moneyFollower = exerciseParams.get("follower").getAsInt();
+                        node = new LeaderNode(hostNodeInfo, neighbours, moneyLeader, moneyFollower);
+                    }else{
+                        int accept = exerciseParams.get("accept").getAsInt();
+                        node = new FollowerNode(hostNodeInfo, neighbours, accept);
+                    }
+                    break;
+                default:
+                    throw new Exception("Unknown exercise number");
+            }
 
             int command;
             boolean run = true;
@@ -54,15 +70,15 @@ public class NodeManager {
                 command = readCommand();
                 switch (command) {
                     case 1:
-                        node.sendMyHostInfo();
+                        node.printHostInfo();
                         break;
                     case 2:
                         node.printNeighbours();
                         break;
                     case 3:
+                        node.play();
                         break;
                     case 4:
-                        node.printHostInfo();
                         break;
                     case 5:
                         break;
@@ -91,15 +107,17 @@ public class NodeManager {
      *
      * @param args the command line arguments
      */
-    private static void interpretCommandLine(String[] args) {
+    private static void interpretCommandLine(String[] args) throws Exception {
         Options options = new Options();
         HelpFormatter formatter = new HelpFormatter();
 
         options.addOption(OPTION_ID, true, OPTION_ID_MSG);
         options.addOption(OPTION_HOSTS, true, OPTION_HOSTS_MSG);
-        options.addOption(OPTION_GAMEMODE, true, OPTION_GAMEMODE_MSG);
-        options.addOption(OPTION_GAME_FOLLOWER, false, OPTION_GAME_FOLLOWER_MSG);
-
+        Option exOption = new Option(OPTION_EXERCISE, true, OPTION_EXERCISE_MSG);
+        exOption.setArgs(2);
+        exOption.setValueSeparator(' ');
+        exOption.setRequired(true);
+        options.addOption(exOption);
 
         CommandLineParser parser = new DefaultParser();
         try {
@@ -107,8 +125,12 @@ public class NodeManager {
 
             hostId = cmd.getOptionValue(OPTION_ID);
             hostsFile = cmd.getOptionValue(OPTION_HOSTS);
-            minToAccept = cmd.getOptionValue(OPTION_GAME_FOLLOWER) == null ? 0 : Integer.valueOf(cmd.getOptionValue(OPTION_GAME_FOLLOWER));
-            gameMode = Integer.valueOf(cmd.getOptionValue(OPTION_GAMEMODE));
+            String[] exercise = cmd.getOptionValues(OPTION_EXERCISE);
+
+            String cfgFile = exercise[1];
+            exerciseNumber = Integer.valueOf(exercise[0]);
+            exerciseParams = getExerciseParams(cfgFile, exerciseNumber);
+
         } catch (ParseException e) {
             formatter.printHelp(HELP_NAME, options);
             logger.err(e.getMessage());
@@ -122,15 +144,15 @@ public class NodeManager {
      */
     private static int readCommand() {
         System.out.println(NodeManager.SEPARATOR);
-        System.out.print("Enter command: "
-                + "\n 0: Stop Server "
-                + "\n 1: (A1) Send message "
-                + "\n 2: Print neighbours "
-                + "\n 3: Initate sharing rumor "
-                + "\n 4: Print Info"
-                + "\n 9: Initate shutting down all nodes ");
-        System.out.println(NodeManager.SEPARATOR);
-        System.out.print("_> ");
+        StringBuilder cl = new StringBuilder("Enter command: ");
+        cl.append("\n 0: Stop Server ");
+        cl.append("\n 1: Print host info");
+        cl.append("\n 2: Print neighbours ");
+        cl.append("\n 3: play");
+        cl.append("\n 9: Initiate shutting down all node");
+        cl.append(NodeManager.SEPARATOR);
+        cl.append("_> ");
+        System.out.print(cl.toString());
 
         Scanner in = new Scanner(System.in);
         int input = in.nextInt();
@@ -138,5 +160,39 @@ public class NodeManager {
         return input;
 
     }
+
+    private static JsonObject getExerciseParams(String cfgFile, int exercise) throws Exception {
+        JsonReader reader = null;
+        try {
+            reader = new JsonReader(new FileReader(cfgFile));
+        } catch (FileNotFoundException e) {
+            logger.err(e.getMessage());
+        }
+
+        //parsing the host information
+        JsonParser parser = new JsonParser();
+        JsonArray cfgArray = parser.parse(reader).getAsJsonArray();
+
+        for (JsonElement obj : cfgArray) {
+            try {
+                JsonObject jsonExercises = obj.getAsJsonObject();
+                int ex = jsonExercises.get("exercise").getAsInt();
+                if(ex == exercise){
+                    JsonArray nodes = jsonExercises.get("nodes").getAsJsonArray();
+                    for (JsonElement nodeElement : nodes) {
+                        JsonObject node = nodeElement.getAsJsonObject();
+                        if(node.get("id").getAsString().equals(hostId)){
+                            return node.get("params").getAsJsonObject();
+                        }
+                    }
+                }
+
+            } catch (Exception e) {
+                throw new JsonParseException("Fehler in der JSON-Konfigdatei: Bitte README.pdf fuer das richtige Format lesen");
+            }
+        }
+        throw new Exception("No exercise and hostId in cfg file found");
+    }
+
 
 }
