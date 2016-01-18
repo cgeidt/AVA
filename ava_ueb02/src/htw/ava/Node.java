@@ -7,153 +7,90 @@ import htw.ava.communication.NodeServer;
 import htw.ava.communication.massages.Game;
 
 import java.io.IOException;
+import java.io.ObjectOutputStream;
+import java.net.ServerSocket;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Random;
 
 /**
  * Class that implements the complete logic of a node
  */
 public abstract class Node {
-    protected NodeServer nodeServer;
+    protected NodeInfo nodeInfo;
     protected ArrayList<NodeInfo> neighbours;
+    protected HashMap<String, Thread> connectionThreads;
+    protected HashMap<String, NodeClient> nodeClients;
+    protected ServerSocket serverSocket;
+    protected boolean runNode;
 
     /**
      * Creates a node object using a NodeInfo object
      *
      * @param nodeInfo object which contains the information of the host node
      * @param neighbours neighbours of the node
-
      */
-    public Node(NodeInfo nodeInfo, ArrayList<NodeInfo> neighbours) {
-        initNode(nodeInfo.getId(), nodeInfo.getHostname(), nodeInfo.getPort(), neighbours);
-    }
-
-    /**
-     * Initiates the node
-     *
-     * @param id id the node will get
-     * @param hostname hostname the node will get
-     * @param port port the node will get
-     * @param neighbours neighbours of the node
-     */
-    private void initNode(String id, String hostname, int port, ArrayList<NodeInfo> neighbours){
+    public Node(NodeInfo nodeInfo, ArrayList<NodeInfo> neighbours) throws IOException, InterruptedException {
+        this.serverSocket = new ServerSocket(nodeInfo.getPort());
+        this.nodeInfo = nodeInfo;
         this.neighbours = neighbours;
-        startServer(id, hostname, port);
+        connectionThreads = new HashMap<String, Thread>();
+        nodeClients = new HashMap<String, NodeClient>();
     }
 
-    /**
-     * Starts the node server logic
-     *
-     * @param id id the node will get
-     * @param hostname hostname the node will get
-     * @param port port the node will get
-     */
-    private void startServer(String id, String hostname, int port){
-        this.nodeServer = new NodeServer(id, hostname, port, this);
-        //listener thread
-        Thread listenerThread = new Thread(nodeServer);
-        listenerThread.start();
+
+
+    private void connect(){
+        for (NodeInfo nodeInfo: neighbours){
+            String id = nodeInfo.getId();
+            NodeClient nodeClient = new NodeClient(nodeInfo.getHostname(), nodeInfo.getPort());
+            nodeClients.put(id, nodeClient);
+            Thread connectionThread = new Thread(nodeClient);
+            connectionThreads.put(id, connectionThread);
+            connectionThread.start();
+        }
+    }
+
+
+    public void startServer() throws IOException, InterruptedException {
+        NodeServer nodeServer = new NodeServer(nodeInfo.getPort(),this);
+        new Thread(nodeServer).start();
+        runNode = true;
+        while(runNode){
+            Thread.sleep(1000);
+        }
+
+    }
+
+
+    protected void sendMessageToRandomNodes(Message msg, int count){
+        count = (count < 0) ? 0 : count;
+        for(int i = 0; i < count; i++){
+            sendMessageToRandomNode(msg);
+        }
+    }
+
+    protected void sendMessageToRandomNode(Message msg){
+        Random random = new Random();
+        int rndIndex = random.nextInt(neighbours.size());
+        sendMessageToNode(neighbours.get(rndIndex).getId(),msg);
+    }
+
+    protected void sendMessageToAllNodes(Message msg){
+        for(NodeInfo nodeInfo : neighbours){
+            sendMessageToNode(nodeInfo.getId(), msg);
+        }
     }
 
     protected void sendMessageToNode(String id, Message msg){
-        for (NodeInfo nodeInfo : neighbours) {
-            if(nodeInfo.getId().equals(id)){
-                try {
-                    //sending message
-                    Thread sendThread = new Thread(new NodeClient(nodeInfo.getHostname(), nodeInfo.getPort(), msg));
-                    sendThread.start();
-                    NodeManager.logger.debug("Sent message of type " + Message.TYPE_MAPPING[msg.getType()] + " to node " + nodeInfo.getId());
-                } catch (IOException ex) {
-                    StringBuilder sb = new StringBuilder();
-                    sb.append("------------------------------------------------------------");
-                    sb.append(ex.getMessage());
-                    sb.append("Could not find node with id " + nodeInfo.getId());
-                    sb.append("Hostname/IP:Port = " + nodeInfo.getHostname() + ":" + nodeInfo.getPort());
-                    sb.append("------------------------------------------------------------");
-                    NodeManager.logger.err(sb.toString());
-
-                }
-            }
-
-        }
-    }
-
-
-    /**
-     * send a message to all neighbours
-     *
-     * @param msg object which contains the message
-     */
-    protected void sendMessage(Message msg) {
-        this.sendMessage(msg, -1, "-1");
-    }
-
-    /**
-     * send a message to a amount of neighbours
-     *
-     * @param msg object which contains the message
-     * @param limit the limit how much neighbours should get a message
-     */
-    protected void sendMessage(Message msg, int limit) {
-        this.sendMessage(msg, limit, "-1");
-    }
-
-    /**
-     * send message to all neighbours expect one
-     *
-     * @param msg object which contains the message
-     * @param except the id of a neighbour which should not get the message
-     */
-    protected void sendMessage(Message msg, String except) {
-        this.sendMessage(msg, -1, except);
+        nodeClients.get(id).send(msg);
     }
 
     /**
      *
-     * Send a message to other nodes
-     *
-     * @param msg object which contains the message
-     * @param limit the limit how much neighbours should get a message
-     * @param except the id of a neighbour which should not get the message
-     */
-    protected void sendMessage(Message msg, int limit, String except) {
-        int count = 0;
-        for (NodeInfo nodeInfo : neighbours) {
-            // checks if current node is the one which should not get the message
-            if (nodeInfo.getId().equals(except)) {
-                continue;
-            }
-            try {
-                //sending message
-                Thread sendThread = new Thread(new NodeClient(nodeInfo.getHostname(), nodeInfo.getPort(), msg));
-                sendThread.start();
-                NodeManager.logger.debug("Sent message of type " + Message.TYPE_MAPPING[msg.getType()] + " to node " + nodeInfo.getId());
-            } catch (IOException ex) {
-                StringBuilder sb = new StringBuilder();
-                sb.append("------------------------------------------------------------");
-                sb.append(ex.getMessage());
-                sb.append("Could not find node with id " + nodeInfo.getId());
-                sb.append("Hostname/IP:Port = " + nodeInfo.getHostname() + ":" + nodeInfo.getPort());
-                sb.append("------------------------------------------------------------");
-                NodeManager.logger.err(sb.toString());
-
-            }
-            count++;
-            //checks if limit is set
-            if (limit != -1) {
-                //checks limit constrain
-                if (count >= limit) {
-                    break;
-                }
-            }
-        }
-    }
-
-
-    /**
-     *
-     * react when received the nodeInfo of other nodes, print the info
-     *
+     * react when received the nodeInfo of other nodes, print the
+     *info
      * @param nodeInfo the nodeInfo of the node which has sent me a message
      */
     public void processNodeInfoReceived(NodeInfo nodeInfo) {
@@ -163,43 +100,6 @@ public abstract class Node {
         sb.append("Hostname/IP:Port = " + nodeInfo.getHostname() + ":" + nodeInfo.getPort()+"\n");
         sb.append("------------------------------------------------------------");
         NodeManager.logger.log(sb.toString());
-    }
-
-
-    /**
-     * shuts down the node and tels all neighbours to shut down
-     */
-    public void initiateShuttingDownAllNodes() {
-        Message msg = new Message(nodeServer.getNodeInfo().getId(), Message.TYPE_COMMAND_SHUTDOWN_NODES, null);
-        sendMessage(msg);
-        System.out.println("------------------------------------------------------------");
-        System.out.println("Shutting down node in 3 sec and telling neighbours to shut down");
-        System.out.println("------------------------------------------------------------");
-        try {
-            Thread.sleep(3000);
-        } catch (InterruptedException ex) {
-            NodeManager.logger.err(ex.getMessage());
-        }
-        shutdown();
-    }
-
-    /**
-     * react when received a message from an other node to shut down, tell neighbours to shut down too
-     *
-     * @param senderID the id of the node which has sent the message
-     */
-    public void processNodesShutdown(String senderID) {
-        Message msg = new Message(nodeServer.getNodeInfo().getId(), Message.TYPE_COMMAND_SHUTDOWN_NODES, null);
-        sendMessage(msg, senderID);
-        System.out.println("------------------------------------------------------------");
-        System.out.println("Shutting down node in 3 sec and telling neighbours to shut down");
-        System.out.println("------------------------------------------------------------");
-        try {
-            Thread.sleep(3000);
-        } catch (InterruptedException ex) {
-            NodeManager.logger.err(ex.getMessage());
-        }
-        shutdown();
     }
 
     /**
@@ -216,23 +116,18 @@ public abstract class Node {
     }
 
 
-    abstract public void handleMessage(Message msg);
+    abstract public void handleMessage(Message msg, ObjectOutputStream answerStream) throws IOException;
 
     /**
      * prints own host info
      */
     public void printHostInfo() {
-        System.out.println(nodeServer.getNodeInfo().toString());
+        System.out.println(nodeInfo.toString());
     }
 
-    public void shutdown(){
-        nodeServer.stop();
+    public void shutdown() throws IOException {
+        serverSocket.close();
     }
 
-    protected void sendMessageToRandomNode(Message msg){
-        Random random = new Random();
-        int rndIndex = random.nextInt(neighbours.size());
-        sendMessageToNode(neighbours.get(rndIndex).getId(),msg);
-    }
 
 }

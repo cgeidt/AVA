@@ -2,9 +2,11 @@ package htw.ava.communication;
 
 import htw.ava.Node;
 import htw.ava.NodeManager;
+import htw.ava.communication.Message;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
 
@@ -13,31 +15,22 @@ import java.net.Socket;
  */
 public class NodeServer implements Runnable {
     private ServerSocket serverSocket;
+    private int port;
     private boolean running;
-    private NodeInfo nodeInfo;
     private Node node;
 
 
     /**
      * Creates a NodeServer object
      *
-     * @param id id of the own node
-     * @param hostname name of the own node
      * @param port port of the own node
      * @param node reference of the node itself
      */
-    public NodeServer(String id, String hostname, int port, Node node) {
-        this.nodeInfo = new NodeInfo(id, hostname, port);
+    public NodeServer(int port, Node node) {
+        this.port = port;
         this.node = node;
     }
 
-    /**
-     *
-     * @return the information about the node
-     */
-    public NodeInfo getNodeInfo() {
-        return nodeInfo;
-    }
 
     @Override
     /**
@@ -47,18 +40,18 @@ public class NodeServer implements Runnable {
         this.running = true;
         try {
             //creating listener Socket with port of the node
-            serverSocket = new ServerSocket(nodeInfo.getPort());
+            serverSocket = new ServerSocket(port);
             while (isRunning()) {
                 Socket socket;
                 // start listening for Messages
                 socket = this.serverSocket.accept();
                 ObjectInputStream ois = new ObjectInputStream(socket.getInputStream());
-                Message receivedMessage = (Message) ois.readObject();
-                receivedMessage.process(node);
+                ObjectOutputStream oos = new ObjectOutputStream(socket.getOutputStream());
+                Message msg = (Message) ois.readObject();
+                node.handleMessage(msg, oos);
             }
         } catch (IOException e) {
-            NodeManager.logger.err(e.getMessage());
-            stop();
+            e.printStackTrace();
         } catch (ClassNotFoundException e) {
             NodeManager.logger.err(e.getMessage());
         }

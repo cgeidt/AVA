@@ -4,23 +4,29 @@ import htw.ava.communication.Message;
 import htw.ava.communication.NodeInfo;
 import htw.ava.communication.massages.Game;
 
+import java.io.IOException;
+import java.io.ObjectOutputStream;
 import java.util.ArrayList;
 
-/**
- * Created by cgeidt on 06.01.2016.
- */
+
 public class LeaderNode extends GameNode {
-    private int AMOUNT_OF_NODES_TO_CONTACT = 3;
-    private ArrayList<Integer> followers;
+    private static final int AMOUNT_OF_NODES_TO_CONTACT = 5;
     private int moneyLeader;
     private int moneyFollower;
     private int money;
+    private int playCounter;
+    private int angenommen;
+    private int abgelehnt;
+    private boolean play;
 
-    public LeaderNode(NodeInfo nodeInfo, ArrayList<NodeInfo> neighbours, int moneyLeader, int moneyFollower){
+    public LeaderNode(NodeInfo nodeInfo, ArrayList<NodeInfo> neighbours, int moneyLeader, int moneyFollower) throws IOException, InterruptedException {
         super(nodeInfo, neighbours);
         this.moneyFollower = moneyFollower;
         this.moneyLeader = moneyLeader;
-        followers = new ArrayList<Integer>();
+        this.playCounter = 0;
+        this.abgelehnt = 0;
+        this.angenommen = 0;
+        play = false;
     }
 
 
@@ -29,8 +35,10 @@ public class LeaderNode extends GameNode {
             case Game.GAME_STATE_REQUEST:
                 game.receivedByANonFollower();
                 NodeManager.logger.debug("Got request but I am a Leader");
-                Message msg = new Message(nodeServer.getNodeInfo().getId(), Message.TYPE_APPLICATION_GAME, game);
+                Message msg = new Message(nodeInfo.getId(), Message.TYPE_APPLICATION_GAME, game);
                 sendMessageToNode(senderId, msg);
+                play = true;
+                play();
                 break;
             case Game.GAME_STATE_ACCEPTED:
                 NodeManager.logger.debug("Host "+senderId+" accepted request");
@@ -41,7 +49,7 @@ public class LeaderNode extends GameNode {
                 break;
             case Game.GAME_STATE_NO_FOLLOWER:
                 game = new Game(moneyLeader, moneyFollower);
-                msg = new Message(nodeServer.getNodeInfo().getId(), Message.TYPE_APPLICATION_GAME, game);
+                msg = new Message(nodeInfo.getId(), Message.TYPE_APPLICATION_GAME, game);
                 sendMessageToRandomNode(msg);
                 break;
             default:
@@ -50,15 +58,16 @@ public class LeaderNode extends GameNode {
     }
 
     public void play(){
-        for(int i = 0; i < AMOUNT_OF_NODES_TO_CONTACT; i++){
+        if(play) {
             Game game = new Game(moneyLeader, moneyFollower);
-            Message msg = new Message(nodeServer.getNodeInfo().getId(), Message.TYPE_APPLICATION_GAME, game);
-            sendMessageToRandomNode(msg);
+            Message msg = new Message(nodeInfo.getId(), Message.TYPE_APPLICATION_GAME, game);
+            sendMessageToRandomNodes(msg, AMOUNT_OF_NODES_TO_CONTACT);
+            playCounter += AMOUNT_OF_NODES_TO_CONTACT;
         }
     }
 
     @Override
-    public void handleMessage(Message msg) {
+    public void handleMessage(Message msg, ObjectOutputStream answerStream) throws IOException {
         //Matching the message type to know which operation the node should do
         switch (msg.getType()) {
             case Message.TYPE_APPLICATION_NODE_INFO:
@@ -67,13 +76,25 @@ public class LeaderNode extends GameNode {
             case Message.TYPE_APPLICATION_GAME:
                 processGame((Game) msg.getData(), msg.getSenderId());
                 break;
-            case Message.TYPE_COMMAND_SHUTDOWN_NODES:
-                processNodesShutdown(msg.getSenderId());
+            case Message.TYPE_APPLICATION_START_PLAYING:
+                NodeManager.logger.log("started playing");
+                play = true;
+                play();
+                break;
+            case Message.TYPE_APPLICATION_STOP_PLAYING:
+                System.out.println("PlayCounter: " +playCounter);
+                NodeManager.logger.log("stopped playing");
+                play = false;
+                break;
+            case Message.TYPE_APPLICATION_TELL_MONEY:
+                Message msgAnswer = new Message(nodeInfo.getId(), Message.TYPE_APPLICATION_GAME, money);
+                answerStream.writeObject(msgAnswer);
                 break;
             default:
                 NodeManager.logger.err(Message.UNKNOWN_TYPE+": "+msg.getType());
                 break;
         }
+        answerStream.close();
     }
 
 }

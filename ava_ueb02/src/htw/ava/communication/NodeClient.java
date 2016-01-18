@@ -11,8 +11,10 @@ import java.net.Socket;
  */
 public class NodeClient implements Runnable {
 
-    private Message msg;
-    private Socket socket;
+    private String targetHostname;
+    private int targetPort;
+    private boolean isConnected;
+    private ObjectOutputStream oos;
 
     /**
      *
@@ -20,12 +22,11 @@ public class NodeClient implements Runnable {
      *
      * @param targetHostname hostname of the target
      * @param targetPort port of the target
-     * @param msg message to send to the target
      * @throws IOException
      */
-    public NodeClient(String targetHostname, int targetPort, Message msg) throws IOException {
-        this.socket = new Socket(targetHostname, targetPort);
-        this.msg = msg;
+    public NodeClient(String targetHostname, int targetPort){
+        this.targetPort = targetPort;
+        this.targetHostname = targetHostname;
     }
 
     @Override
@@ -34,12 +35,37 @@ public class NodeClient implements Runnable {
      */
     public void run() {
         try {
-            ObjectOutputStream oos = new ObjectOutputStream(socket.getOutputStream());
-            oos.writeObject(this.msg);
-            oos.close();
-            this.socket.close();
-        } catch (IOException e) {
-            NodeManager.logger.err(e.getMessage());
+            Socket socket = new Socket(targetHostname, targetPort);
+            oos = new ObjectOutputStream(socket.getOutputStream());
+            isConnected = true;
+        }catch(Exception e){
+            e.printStackTrace();
+            try {
+                NodeManager.logger.err("Trying to reconnect to "+targetHostname+":"+targetPort);
+                Thread.sleep(1000);
+            }catch(Exception ignored){}
+            isConnected = false;
+            run();
+        }
+    }
+
+    public void send(Message msg){
+        boolean isSend = false;
+        while(!isSend){
+            if(!isConnected) {
+                System.out.println("Not ready for Transmitting!");
+                try {
+                    Thread.sleep(1000);
+                }catch(Exception ignored){}
+                run();
+            }
+            try {
+                oos.writeObject(msg);
+                isSend = true;
+            }catch (Exception e){
+                isConnected = false;
+                run();
+            }
         }
     }
 }

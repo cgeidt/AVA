@@ -4,6 +4,7 @@ import htw.ava.Node;
 import htw.ava.NodeManager;
 import htw.ava.communication.massages.Game;
 
+import java.io.ObjectOutputStream;
 import java.io.Serializable;
 
 /**
@@ -16,6 +17,10 @@ public class Message implements Serializable {
     public static final int TYPE_APPLICATION_NODE_INFO = 0;
     public static final int TYPE_COMMAND_SHUTDOWN_NODES = 1;
     public static final int TYPE_APPLICATION_GAME = 2;
+    public static final int TYPE_APPLICATION_STOP_PLAYING = 3;
+    public static final int TYPE_APPLICATION_START_PLAYING = 6;
+    public static final int TYPE_APPLICATION_TELL_MONEY = 4;
+    public static final int TYPE_APPLICATION_TELL_MONEY_ANSWER = 5;
     public static final String UNKNOWN_TYPE = "Received Message with unknown type";
 
     /**
@@ -38,15 +43,6 @@ public class Message implements Serializable {
         this.senderId = senderId;
         this.type = type;
         this.data = data;
-    }
-
-    /**
-     * Apply the changes to the node caused by the message
-     *
-     * @param nodeToAffect Node which receives the message
-     */
-    public void process(Node nodeToAffect){
-        nodeToAffect.handleMessage(this);
     }
 
 

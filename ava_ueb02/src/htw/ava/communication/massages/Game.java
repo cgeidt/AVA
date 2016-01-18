@@ -48,4 +48,12 @@ public class Game implements Serializable {
     public void receivedByANonFollower(){
         gameState = GAME_STATE_NO_FOLLOWER;
     }
+
+    public String toString(){
+        StringBuilder sb = new StringBuilder();
+        sb.append("GameState: ").append(gameState).append("\n");
+        sb.append("LeaderMoney: ").append(leaderMoney).append("\n");
+        sb.append("FollowerMoney: ").append(followerMoney).append("\n");
+        return sb.toString();
+    }
 }

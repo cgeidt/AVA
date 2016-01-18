@@ -36,6 +36,10 @@ public class NodeManager {
     private static int exerciseNumber;
 
 
+    public static void main(String[] args) {
+        start(args);
+    }
+
     /**
      * @param args the command line arguments
      */
@@ -64,38 +68,7 @@ public class NodeManager {
                     throw new Exception("Unknown exercise number");
             }
 
-            int command;
-            boolean run = true;
-            while (run) {
-                command = readCommand();
-                switch (command) {
-                    case 1:
-                        node.printHostInfo();
-                        break;
-                    case 2:
-                        node.printNeighbours();
-                        break;
-                    case 3:
-                        node.play();
-                        break;
-                    case 4:
-                        break;
-                    case 5:
-                        break;
-                    case 6:
-                        break;
-                    case 7:
-                        break;
-                    case 9:
-                        node.initiateShuttingDownAllNodes();
-                        break;
-                }
-                if (command == 0) {
-                    run = false;
-                    node.shutdown();
-                }
-
-            }
+            node.startServer();
 
         } catch (Exception ex) {
            ex.printStackTrace();
@@ -146,12 +119,6 @@ public class NodeManager {
         System.out.println(NodeManager.SEPARATOR);
         StringBuilder cl = new StringBuilder("Enter command: ");
         cl.append("\n 0: Stop Server ");
-        cl.append("\n 1: Print host info");
-        cl.append("\n 2: Print neighbours ");
-        cl.append("\n 3: play");
-        cl.append("\n 9: Initiate shutting down all node");
-        cl.append(NodeManager.SEPARATOR);
-        cl.append("_> ");
         System.out.print(cl.toString());
 
         Scanner in = new Scanner(System.in);
