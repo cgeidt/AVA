@@ -6,18 +6,21 @@ if(id == undefined){
 }
 
 /** Laden der Hostdatei */
-var hostslist = require('./hostlist_a2_24.json');
+var hostslist = require('./hostlist.json');
 
 /**Node Variabeln */
 var node;
 var neighbours = [];
-var amountOfHosts = 0;
+
+var sendCounter = 0;
+var receiveCounter = 0;
 
 /**Game Variabeln */
 var money = 0;
 var nodeMode;
-var amountOfPlayersToContact = 3;
 var continuePlaying = false;
+var moneyLimit = null;
+var halt = false;
 
 /** Auslesen der eigenen HostInfos und der Nachbarn */
 for(var hostNr in hostslist){
@@ -28,6 +31,8 @@ for(var hostNr in hostslist){
     }
 }
 
+var amountOfPlayers = neighbours.length;
+
 /** Starte Server */
 var io = require('socket.io')(node.port);
 console.log("Started server:"+node.hostname+ ":" + node.port);
@@ -36,10 +41,17 @@ io.on('connection', function (socket) {
     socket.on('control', function (msg) {
         switch (msg.type){
             case "init":
-                amountOfHosts = msg.amountOfHosts;
+                amountOfPlayers = msg.amountOfPlayers;
                 money = 0;
+                sendCounter = 0;
+                receiveCounter = 0;
+                if(msg.moneyLimit != undefined){
+                    moneyLimit = msg.moneyLimit;
+                }
+                halt = false;
                 continuePlaying = true;
                 nodeMode = msg.data;
+                console.log(nodeMode);
                 break;
             case "startPlaying":
                 startPlaying();
@@ -50,31 +62,55 @@ io.on('connection', function (socket) {
             case "requestMoney":
                 socket.emit('responseMoney', {money: money});
                 break;
+            case "doubleCountCheck":
+                socket.emit('doubleCountResponse', {send: sendCounter, receiveBuffer: receiveCounter});
+                break;
             default:
                 console.log("Unknown control type: "+msg.type);
         }
     });
     /** Spielnachrichten abfangen */
     socket.on('game', function (msg){
+        receiveCounter++;
+        console.log(receiveCounter);
         switch (msg.type){
             case 'request':
-                switch (nodeMode.strategy) {
-                    case 'follower':
-                        if (nodeMode.accept <= msg.data.follower){
-                            money += msg.data.follower;
-                            socket.emit('game', {type: 'accepted', data: msg.data});
-                        }
-                        break;
-                    case 'leader':
-                        startPlaying();
-                        break;
-                    case 'both':
-                        break;
-                    case 'dynamic':
-                        break;
-                    default :
-                        console.log('Unknown strategy: ' + gameMode);
-                }
+                    switch (nodeMode.strategy) {
+                        case 'follower':
+                            if (nodeMode.accept <= msg.data.follower){
+                                money += msg.data.follower;
+                                socket.emit('game', {type: 'accepted', data: msg.data});
+                            }
+                            break;
+                        case 'leader':
+                            startPlaying();
+                            break;
+                        case 'both':
+                            if(halt){
+                                socket.emit('game', {type: 'halt'});
+                            }else{
+                                if (nodeMode.accept <= msg.data.follower){
+                                    money += msg.data.follower;
+                                    if(moneyLimit != null && money >= moneyLimit){
+                                        halt = true;
+                                        continuePlaying = false;
+                                        socket.emit('game', {type: 'halt'});
+                                        console.log("Send HALT: "+money);
+                                    }else{
+                                        socket.emit('game', {type: 'accepted', data: msg.data});
+                                    }
+                                }
+                                startPlaying();
+                            }
+                            break;
+                        default :
+                            console.log('Unknown strategy: ' + gameMode);
+                    }
+                break;
+            case 'halt':
+                halt = true;
+                continuePlaying = false;
+                console.log("Received: HALT");
                 break;
             default:
                 console.log('Unknown game type: '+msg.type);
@@ -85,11 +121,27 @@ io.on('connection', function (socket) {
 var ioc = require( 'socket.io-client' );
 /** Verbinden der Clients */
 neighbours.forEach(function (neighbour){
+    console.log(receiveCounter);
     neighbour.connection = ioc.connect("http://"+neighbour.hostname+ ":" + neighbour.port);
     neighbour.connection.on('game', function (msg){
+        receiveCounter++;
         switch (msg.type){
             case 'accepted':
-                money += msg.data.leader;
+                if(!halt){
+                    money += msg.data.leader;
+                    /** Vermögensgrenze erreicht? Wenn ja sende HALT */
+                    if(moneyLimit != null && money >= moneyLimit){
+                        halt = true;
+                        continuePlaying = false;
+                        neighbour.connection.emit('game', {type: 'halt'});
+                        console.log("Send HALT: "+money);
+                    }
+                }
+                break;
+            case 'halt':
+                halt = true;
+                continuePlaying = false;
+                console.log("Received: HALT");
                 break;
             default:
                 console.log('Unknown game type: '+msg.type);
@@ -99,13 +151,14 @@ neighbours.forEach(function (neighbour){
 
 /** Starte das Spiel mit einer definierten Anzahl an Clients */
 function startPlaying(){
-    if(continuePlaying){
-        for(var i = 0; i < amountOfPlayersToContact; i++){
-            setTimeout(function(){
-                var rndIndex = Math.floor(Math.random()*amountOfHosts);
+    for(var i = 0; i < Math.ceil(amountOfPlayers/2); i++){
+        setTimeout(function(){
+            if(continuePlaying) {
+                sendCounter++;
+                console.log(sendCounter);
+                var rndIndex = Math.floor(Math.random()*(amountOfPlayers-1));
                 neighbours[rndIndex].connection.emit('game', {type: 'request', data: {leader: nodeMode.leader, follower: nodeMode.follower}});
-            }, i*100);
-        }
+            }
+        }, 200);
     }
 }
-
