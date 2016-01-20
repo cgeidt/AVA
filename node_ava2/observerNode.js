@@ -15,9 +15,9 @@ var neighbours = [];
 
 var nodeWithMostMoney;
 var answerCounter = 1;
-var terminated = false;
-var doubleCheckCounter = 1;
-var doubleCheckNodeArray = 1;
+var doubleCheckNodeResponseCounter = 1;
+var doubleCheckCounter = 0;
+var doubleCheckCounterOld =0;
 
 /** Auslesen der eigenen HostInfos und der Nachbarn */
 for (var hostNr in hostslist) {
@@ -30,6 +30,7 @@ for (var hostNr in hostslist) {
 
 /** Lade Clientsocket-packet */
 var ioc = require('socket.io-client');
+
 /** Verbinden der Clients */
 neighbours.forEach(function (neighbour) {
     neighbour.connection = ioc.connect("http://" + neighbour.hostname + ":" + neighbour.port);
@@ -40,16 +41,21 @@ neighbours.forEach(function (neighbour) {
         console.log("Node " + neighbour.id + " " + neighbour.strategy + ": " + msg.money);
         if (++answerCounter == neighbours.length) {
             console.log("Most successful: Node " + nodeWithMostMoney.id + " " + nodeWithMostMoney.strategy + ": " + nodeWithMostMoney.money);
+            printCommands();
         }
     });
     neighbour.connection.on('doubleCountResponse', function (msg) {
-        if (doubleCheckNodeArray[neighbour.id] == undefined || doubleCheckNodeArray[neighbour.id].sender != msg.sender || doubleCheckNodeArray[neighbour.id].receiver != msg.receiver) {
-            doubleCheckNodeArray[neighbour.id] = {sender: msg.sender, receiver: msg.receiver};
-            terminated = false;
-        }
-        doubleCheckCounter++;
-        if (doubleCheckCounter == neighbours.length) {
-            setTimeout(startDoubleCountCheck, 1000);
+        doubleCheckCounter += msg.transferredMessages;
+        doubleCheckNodeResponseCounter++;
+        console.log(doubleCheckCounterOld);
+        console.log(doubleCheckCounter);
+        if (doubleCheckNodeResponseCounter == neighbours.length) {
+            if(doubleCheckCounterOld == doubleCheckCounter){
+                requestMoney();
+            }else{
+                doubleCheckCounterOld = doubleCheckCounter;
+                setTimeout(startDoubleCountCheck, 1000);
+            }
         }
     });
 });
@@ -89,8 +95,9 @@ stdin.addListener("data", function (d) {
         case "8":
             initA5();
             neighbours[0].connection.emit('control', {type: "startPlaying"});
-            doubleCheckNodeArray = Array();
-            doubleCheckCounter = 1;
+            doubleCheckCounter = 0;
+            doubleCheckCounterOld = 0;
+            doubleCheckNodeResponseCounter = 1;
             setTimeout(startDoubleCountCheck, 1000);
             break;
         case "9":
@@ -107,6 +114,7 @@ stdin.addListener("data", function (d) {
     printCommands();
 });
 
+/** Ausgeben der Befehlliste */
 function printCommands() {
     console.log("1: Start playing A2 (8)");
     console.log("2: Start playing A2 (16)");
@@ -120,6 +128,7 @@ function printCommands() {
     console.log("10: Request money");
 }
 
+/** Initialisiere Knoten für A2 */
 function initA2(amountOfPlayers) {
     resetNodes();
     var leader = 3;
@@ -148,6 +157,7 @@ function initA2(amountOfPlayers) {
     }
 }
 
+/** Initialisiere Knoten für A3 */
 function initA3(amountOfPlayers) {
     resetNodes();
     var leader = 3;
@@ -171,6 +181,7 @@ function initA3(amountOfPlayers) {
     }
 }
 
+/** Initialisiere Knoten für A4 */
 function initA4() {
     resetNodes();
     var p = 8;
@@ -194,6 +205,7 @@ function initA4() {
     }
 }
 
+/** Initialisiere Knoten für A5 */
 function initA5() {
     resetNodes();
     var moneyLimit = 100;
@@ -219,24 +231,24 @@ function initA5() {
     }
 }
 
+/** Setzt die Stratgie der Knoten zurck(nur Anzeige) */
 function resetStrategy() {
     neighbours.forEach(function (neighbour) {
         neighbour.strategy = '';
     });
+    nodeWithMostMoney = null;
 }
 
+/** Doppelzählverfahren für die Terminierung festzustellen */
 function startDoubleCountCheck() {
-    if (terminated) {
-        requestMoney();
-    } else {
-        terminated = true;
-        doubleCheckCounter = 1;
-        neighbours.forEach(function (neighbour) {
-            neighbour.connection.emit('control', {type: 'doubleCountCheck'});
-        });
-    }
+    doubleCheckCounter = 0;
+    doubleCheckNodeResponseCounter = 1;
+    neighbours.forEach(function (neighbour) {
+        neighbour.connection.emit('control', {type: 'doubleCountCheck'});
+    });
 }
 
+/** Erfrage Geld der Knoten */
 function requestMoney() {
     answerCounter = 1;
     neighbours.forEach(function (neighbour) {
@@ -244,6 +256,7 @@ function requestMoney() {
     });
 }
 
+/** Setze Spielparameter der Knoten zurück */
 function resetNodes(){
     neighbours.forEach(function(neighbour){
         neighbour.connection.emit('control', {type: 'reset'});

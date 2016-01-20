@@ -40,6 +40,7 @@ io.on('connection', function (socket) {
     /** Kontrollnachrichten abfangen */
     socket.on('control', function (msg) {
         switch (msg.type){
+            /** Initialisiere Knoten im entsprechenden Spielmodi */
             case "init":
                 reset();
                 amountOfPlayers = msg.amountOfPlayers;
@@ -49,20 +50,25 @@ io.on('connection', function (socket) {
                 nodeMode = msg.data;
                 console.log(nodeMode);
                 break;
+            /** Setze Spieldaten zurück */
             case "reset":
                 reset();
                 break;
+            /** Beginne zu spielen */
             case "startPlaying":
                 startPlaying();
                 break;
+            /** Höre auf zu spielen */
             case "stopPlaying":
                 continuePlaying = false;
                 break;
+            /** Liefere Geld zurück */
             case "requestMoney":
                 socket.emit('responseMoney', {money: money});
                 break;
+            /** Teile Sende- und Empfangszahlen */
             case "doubleCountCheck":
-                socket.emit('doubleCountResponse', {send: sendCounter, receiveBuffer: receiveCounter});
+                socket.emit('doubleCountResponse', {transferredMessages: receiveCounter+sendCounter});
                 break;
             default:
                 console.log("Unknown control type: "+msg.type);
@@ -84,6 +90,7 @@ io.on('connection', function (socket) {
                             startPlaying();
                             break;
                         case 'both':
+                            /** Angehalten aufgrund von Vermögensgrenze? */
                             if(halt){
                                 socket.emit('game', {type: 'halt'});
                             }else{
@@ -105,6 +112,7 @@ io.on('connection', function (socket) {
                             console.log('Unknown strategy: ' + gameMode);
                     }
                 break;
+            /** Empfange HALT-Nachricht */
             case 'halt':
                 halt = true;
                 continuePlaying = false;
@@ -115,8 +123,10 @@ io.on('connection', function (socket) {
         }
     });
 });
+
 /** Lade Clientsocket-packet */
 var ioc = require( 'socket.io-client' );
+
 /** Verbinden der Clients */
 neighbours.forEach(function (neighbour){
     neighbour.connection = ioc.connect("http://"+neighbour.hostname+ ":" + neighbour.port);
@@ -135,6 +145,7 @@ neighbours.forEach(function (neighbour){
                     }
                 }
                 break;
+            /** Empfange HALT-Nachricht */
             case 'halt':
                 halt = true;
                 continuePlaying = false;
@@ -149,6 +160,7 @@ neighbours.forEach(function (neighbour){
 function startPlaying(){
     for(var i = 0; i < Math.ceil(amountOfPlayers/2); i++){
         setTimeout(function(){
+            /** Spiel angehalten? */
             if(continuePlaying) {
                 sendCounter++;
                 var rndIndex = Math.floor(Math.random()*(amountOfPlayers-1));
@@ -158,6 +170,7 @@ function startPlaying(){
     }
 }
 
+/** Setze Spielparamter zurück */
 function reset(){
     money = 0;
     sendCounter = 0;
