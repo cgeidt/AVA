@@ -121,7 +121,7 @@ function printCommands() {
 }
 
 function initA2(amountOfPlayers) {
-    resetStrategy();
+    resetNodes();
     var leader = 3;
     var acceptLimit = 3;
     var hostIndex = 0;
@@ -149,7 +149,7 @@ function initA2(amountOfPlayers) {
 }
 
 function initA3(amountOfPlayers) {
-    resetStrategy();
+    resetNodes();
     var leader = 3;
     var acceptLimit = 3;
     var hostIndex = 0;
@@ -172,7 +172,7 @@ function initA3(amountOfPlayers) {
 }
 
 function initA4() {
-    resetStrategy();
+    resetNodes();
     var p = 8;
     var leader = p;
     var acceptLimit = p;
@@ -195,7 +195,7 @@ function initA4() {
 }
 
 function initA5() {
-    resetStrategy();
+    resetNodes();
     var moneyLimit = 100;
     var leader = 3;
     var acceptLimit = 3;
@@ -244,3 +244,9 @@ function requestMoney() {
     });
 }
 
+function resetNodes(){
+    neighbours.forEach(function(neighbour){
+        neighbour.connection.emit('control', {type: 'reset'});
+    });
+    resetStrategy();
+}

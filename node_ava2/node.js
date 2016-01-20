@@ -41,17 +41,16 @@ io.on('connection', function (socket) {
     socket.on('control', function (msg) {
         switch (msg.type){
             case "init":
+                reset();
                 amountOfPlayers = msg.amountOfPlayers;
-                money = 0;
-                sendCounter = 0;
-                receiveCounter = 0;
                 if(msg.moneyLimit != undefined){
                     moneyLimit = msg.moneyLimit;
                 }
-                halt = false;
-                continuePlaying = true;
                 nodeMode = msg.data;
                 console.log(nodeMode);
+                break;
+            case "reset":
+                reset();
                 break;
             case "startPlaying":
                 startPlaying();
@@ -72,7 +71,6 @@ io.on('connection', function (socket) {
     /** Spielnachrichten abfangen */
     socket.on('game', function (msg){
         receiveCounter++;
-        console.log(receiveCounter);
         switch (msg.type){
             case 'request':
                     switch (nodeMode.strategy) {
@@ -95,7 +93,7 @@ io.on('connection', function (socket) {
                                         halt = true;
                                         continuePlaying = false;
                                         socket.emit('game', {type: 'halt'});
-                                        console.log("Send HALT: "+money);
+                                        //console.log("Send HALT: "+money);
                                     }else{
                                         socket.emit('game', {type: 'accepted', data: msg.data});
                                     }
@@ -110,7 +108,7 @@ io.on('connection', function (socket) {
             case 'halt':
                 halt = true;
                 continuePlaying = false;
-                console.log("Received: HALT");
+                //console.log("Received: HALT");
                 break;
             default:
                 console.log('Unknown game type: '+msg.type);
@@ -121,7 +119,6 @@ io.on('connection', function (socket) {
 var ioc = require( 'socket.io-client' );
 /** Verbinden der Clients */
 neighbours.forEach(function (neighbour){
-    console.log(receiveCounter);
     neighbour.connection = ioc.connect("http://"+neighbour.hostname+ ":" + neighbour.port);
     neighbour.connection.on('game', function (msg){
         receiveCounter++;
@@ -134,14 +131,13 @@ neighbours.forEach(function (neighbour){
                         halt = true;
                         continuePlaying = false;
                         neighbour.connection.emit('game', {type: 'halt'});
-                        console.log("Send HALT: "+money);
+                        //console.log("Send HALT: "+money);
                     }
                 }
                 break;
             case 'halt':
                 halt = true;
                 continuePlaying = false;
-                console.log("Received: HALT");
                 break;
             default:
                 console.log('Unknown game type: '+msg.type);
@@ -155,10 +151,18 @@ function startPlaying(){
         setTimeout(function(){
             if(continuePlaying) {
                 sendCounter++;
-                console.log(sendCounter);
                 var rndIndex = Math.floor(Math.random()*(amountOfPlayers-1));
                 neighbours[rndIndex].connection.emit('game', {type: 'request', data: {leader: nodeMode.leader, follower: nodeMode.follower}});
             }
-        }, 200);
+        }, i*(200-(i*2)));
     }
+}
+
+function reset(){
+    money = 0;
+    sendCounter = 0;
+    receiveCounter = 0;
+    halt = false;
+    continuePlaying = true;
+    moneyLimit = null;
 }
